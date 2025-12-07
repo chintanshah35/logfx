@@ -1,0 +1,70 @@
+{
+  "name": "logfx",
+  "version": "0.1.0",
+  "description": "Tiny, pretty logging for JS. Colors, emojis, namespaces. Zero deps.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
+    "demo": "npx tsx demo.ts"
+  },
+  "keywords": [
+    "console",
+    "log",
+    "logger",
+    "logging",
+    "debug",
+    "pretty",
+    "colorful",
+    "emoji",
+    "browser",
+    "node",
+    "typescript",
+    "terminal",
+    "cli",
+    "fx",
+    "effects"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chintanshah35/logfx"
+  },
+  "bugs": {
+    "url": "https://github.com/chintanshah35/logfx/issues"
+  },
+  "homepage": "https://github.com/chintanshah35/logfx#readme",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.2",
+    "vitest": "^1.0.4"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}
