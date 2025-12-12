@@ -1,5 +1,5 @@
 import type { LogLevel, LoggerOptions } from './types'
-import { styles, ansiColors, isBrowser } from './styles'
+import { styles, ansiColors } from './styles'
 
 /**
  * Format timestamp
