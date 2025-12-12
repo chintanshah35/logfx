@@ -193,7 +193,7 @@ badge(text, color?)
 ## License
 
 MIT
-
 ---
 
 [⭐ Star on GitHub](https://github.com/chintanshah35/logfx) · [📦 npm](https://www.npmjs.com/package/logfx)
+
