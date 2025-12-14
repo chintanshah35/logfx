@@ -1,11 +1,50 @@
 export type LogLevel = 'debug' | 'info' | 'success' | 'warn' | 'error'
 
+export type LogFormat = 'pretty' | 'json'
+
+export interface LogEntry {
+  timestamp: Date
+  level: LogLevel
+  message: string
+  namespace?: string
+  data?: Record<string, unknown>
+  error?: Error
+}
+
+export interface Transport {
+  name: string
+  log: (entry: LogEntry) => void | Promise<void>
+  flush?: () => void | Promise<void>
+  close?: () => void | Promise<void>
+}
+
+export interface ConsoleTransportOptions {
+  format?: LogFormat
+  colors?: boolean
+  timestamps?: boolean
+}
+
+export interface FileTransportOptions {
+  path: string
+  format?: LogFormat
+}
+
+export interface WebhookTransportOptions {
+  url: string
+  headers?: Record<string, string>
+  method?: 'POST' | 'PUT'
+  batchSize?: number
+  flushInterval?: number
+}
+
 export interface LoggerOptions {
   namespace?: string
   level?: LogLevel
   timestamp?: boolean
   enabled?: boolean
   badge?: string
+  format?: LogFormat
+  transports?: Transport[]
 }
 
 export interface LogStyle {
@@ -33,6 +72,7 @@ export interface Logger {
   child: (namespace: string, options?: Partial<LoggerOptions>) => Logger
   setEnabled: (enabled: boolean) => void
   setLevel: (level: LogLevel) => void
+  flush?: () => Promise<void>
 }
 
 export interface ExtendedLogger extends Logger {

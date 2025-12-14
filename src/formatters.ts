@@ -1,4 +1,4 @@
-import type { LogLevel, LoggerOptions } from './types'
+import type { LogLevel, LoggerOptions, LogEntry } from './types'
 import { styles, ansiColors } from './styles'
 
 /**
@@ -125,3 +125,38 @@ export const getConsoleMethod = (level: LogLevel): 'log' | 'warn' | 'error' | 'd
   }
 }
 
+/**
+ * Serialize error for JSON output
+ */
+const serializeError = (error: Error): Record<string, unknown> => {
+  return {
+    name: error.name,
+    message: error.message,
+    stack: error.stack
+  }
+}
+
+/**
+ * Format a log entry as JSON string
+ */
+export const formatJson = (entry: LogEntry): string => {
+  const output: Record<string, unknown> = {
+    timestamp: entry.timestamp.toISOString(),
+    level: entry.level,
+    message: entry.message
+  }
+
+  if (entry.namespace) {
+    output.namespace = entry.namespace
+  }
+
+  if (entry.data && Object.keys(entry.data).length > 0) {
+    Object.assign(output, entry.data)
+  }
+
+  if (entry.error) {
+    output.error = serializeError(entry.error)
+  }
+
+  return JSON.stringify(output)
+}
