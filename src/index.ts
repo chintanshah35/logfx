@@ -1,27 +1,42 @@
 import { createLogger } from './logger'
-import type { Logger, ExtendedLogger, LoggerOptions, LogLevel, LogStyle, BoxOptions, BadgeColor } from './types'
+import type { 
+  Logger, 
+  ExtendedLogger, 
+  LoggerOptions, 
+  LogLevel, 
+  LogStyle, 
+  BoxOptions, 
+  BadgeColor,
+  Transport,
+  LogEntry,
+  LogFormat,
+  ConsoleTransportOptions,
+  FileTransportOptions,
+  WebhookTransportOptions
+} from './types'
 
-// Default logger instance
 const defaultLogger = createLogger()
 
-/**
- * Ready-to-use logger instance
- * @example
- * import { log } from 'logfx'
- * log.info('Hello!')
- */
 export const log = defaultLogger
 
 export { createLogger }
 
-/**
- * Shorthand for creating a namespaced logger
- */
 export const logger = (namespace: string, options?: Partial<LoggerOptions>): Logger => {
   return createLogger({ ...options, namespace })
 }
 
-// Extended features - tree-shakeable, import what you need
+// Transports
+import { consoleTransport, fileTransport, webhookTransport } from './transports'
+
+export const transports = {
+  console: consoleTransport,
+  file: fileTransport,
+  webhook: webhookTransport,
+}
+
+export { consoleTransport, fileTransport, webhookTransport }
+
+// Extended features
 export { time, timeEnd } from './extended'
 export { count, countReset } from './extended'
 export { group, groupCollapsed, groupEnd } from './extended'
@@ -33,10 +48,6 @@ export { badge } from './extended'
 
 import * as extended from './extended'
 
-/**
- * Logger with all extended methods built-in.
- * Use this if you want everything on one object.
- */
 export const createExtendedLogger = (options?: LoggerOptions): ExtendedLogger => {
   const baseLogger = createLogger(options)
   
@@ -65,7 +76,13 @@ export type {
   LogLevel, 
   LogStyle,
   BoxOptions,
-  BadgeColor
+  BadgeColor,
+  Transport,
+  LogEntry,
+  LogFormat,
+  ConsoleTransportOptions,
+  FileTransportOptions,
+  WebhookTransportOptions
 }
 
 export default log

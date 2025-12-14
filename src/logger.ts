@@ -1,11 +1,7 @@
-import type { LogLevel, LoggerOptions, Logger } from './types'
+import type { LogLevel, LoggerOptions, Logger, Transport, LogEntry } from './types'
 import { isBrowser, isProduction, levelPriority } from './styles'
 import { formatBrowser, formatNode, getConsoleMethod } from './formatters'
 
-/**
- * Global debug filter (similar to 'debug' package)
- * Set via DEBUG environment variable or localStorage
- */
 const getDebugFilter = (): string | null => {
   if (typeof process !== 'undefined' && process.env?.DEBUG) {
     return process.env.DEBUG
@@ -16,9 +12,6 @@ const getDebugFilter = (): string | null => {
   return null
 }
 
-/**
- * Check if a namespace matches the debug filter
- */
 const matchesFilter = (namespace: string | undefined, filter: string | null): boolean => {
   if (!filter) return true
   if (!namespace) return filter === '*'
@@ -29,13 +22,11 @@ const matchesFilter = (namespace: string | undefined, filter: string | null): bo
     if (pattern === '*') return true
     if (pattern === namespace) return true
 
-    // Simple wildcard matching (e.g., 'auth:*' matches 'auth:login')
     if (pattern.endsWith('*')) {
       const prefix = pattern.slice(0, -1)
       if (namespace.startsWith(prefix)) return true
     }
 
-    // Negative pattern (e.g., '-auth' excludes 'auth')
     if (pattern.startsWith('-')) {
       const excluded = pattern.slice(1)
       if (namespace === excluded || namespace.startsWith(excluded + ':')) {
@@ -47,9 +38,27 @@ const matchesFilter = (namespace: string | undefined, filter: string | null): bo
   return false
 }
 
-/**
- * Create a logger instance
- */
+const extractMessage = (args: unknown[]): { message: string; data?: Record<string, unknown>; error?: Error } => {
+  let message = ''
+  let data: Record<string, unknown> | undefined
+  let error: Error | undefined
+
+  for (const arg of args) {
+    if (typeof arg === 'string') {
+      message = message ? `${message} ${arg}` : arg
+    } else if (arg instanceof Error) {
+      error = arg
+      if (!message) message = arg.message
+    } else if (typeof arg === 'object' && arg !== null) {
+      data = { ...data, ...arg as Record<string, unknown> }
+    } else {
+      message = message ? `${message} ${String(arg)}` : String(arg)
+    }
+  }
+
+  return { message, data, error }
+}
+
 export const createLogger = (options: LoggerOptions = {}): Logger => {
   const config = {
     namespace: options.namespace as string | undefined,
@@ -57,26 +66,37 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     timestamp: options.timestamp ?? false,
     enabled: options.enabled ?? !isProduction(),
     badge: options.badge,
+    format: options.format ?? 'pretty' as const,
+    transports: options.transports as Transport[] | undefined,
   }
 
   const debugFilter = getDebugFilter()
 
-  /**
-   * Internal log function
-   */
   const logInternal = (level: LogLevel, ...args: unknown[]): void => {
-    // Check if logging is enabled
     if (!config.enabled) return
-
-    // Check log level priority
     if (levelPriority[level] < levelPriority[config.level]) return
-
-    // Check debug filter
     if (!matchesFilter(config.namespace, debugFilter)) return
-
-    // Auto-hide debug in production
     if (level === 'debug' && isProduction()) return
 
+    // Use transports if configured
+    if (config.transports && config.transports.length > 0) {
+      const { message, data, error } = extractMessage(args)
+      const entry: LogEntry = {
+        timestamp: new Date(),
+        level,
+        message,
+        namespace: config.namespace,
+        data,
+        error
+      }
+
+      for (const transport of config.transports) {
+        transport.log(entry)
+      }
+      return
+    }
+
+    // Legacy pretty output
     const method = getConsoleMethod(level)
 
     if (isBrowser) {
@@ -88,9 +108,6 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     }
   }
 
-  /**
-   * Create child logger with namespace
-   */
   const child = (namespace: string, childOptions: Partial<LoggerOptions> = {}): Logger => {
     const childNamespace = config.namespace
       ? `${config.namespace}:${namespace}`
@@ -101,6 +118,15 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
       ...childOptions,
       namespace: childNamespace,
     })
+  }
+
+  const flush = async (): Promise<void> => {
+    if (!config.transports) return
+    for (const transport of config.transports) {
+      if (transport.flush) {
+        await transport.flush()
+      }
+    }
   }
 
   return {
@@ -116,6 +142,6 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     setLevel: (level: LogLevel) => {
       config.level = level
     },
+    flush,
   }
 }
-
