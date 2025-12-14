@@ -1,6 +1,6 @@
 {
   "name": "logfx",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Tiny, pretty logging for JS. Colors, emojis, namespaces. Zero deps.",
   "type": "module",
   "main": "./dist/index.cjs",
