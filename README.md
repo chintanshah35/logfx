@@ -84,6 +84,46 @@ const log = createLogger({
 | `level` | `LogLevel` | `'debug'` | Minimum level to display |
 | `timestamp` | `boolean` | `false` | Show timestamps |
 | `enabled` | `boolean` | `true` | Enable/disable logging |
+| `transports` | `Transport[]` | - | Custom transports |
+
+## Transports
+
+Send logs to multiple destinations:
+
+```typescript
+import { createLogger, transports } from 'logfx'
+
+const log = createLogger({
+  transports: [
+    transports.console({ format: 'pretty' }),
+    transports.file({ path: './logs/app.log' }),
+    transports.webhook({ url: 'https://your-api.com/logs' }),
+  ]
+})
+```
+
+### JSON Output
+
+For production, use JSON format:
+
+```typescript
+const log = createLogger({
+  transports: [
+    transports.console({ format: 'json' })
+  ]
+})
+
+log.info('User login', { userId: 123 })
+// {"timestamp":"2025-12-17T...","level":"info","message":"User login","userId":123}
+```
+
+### Available Transports
+
+| Transport | Description |
+|-----------|-------------|
+| `console` | Pretty or JSON output to stdout |
+| `file` | Write to file (Node.js only) |
+| `webhook` | POST logs to HTTP endpoint |
 
 ## Extended Features
 
