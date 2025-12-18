@@ -7,19 +7,18 @@
 [![bundle size](https://img.shields.io/bundlephobia/minzip/logfx)](https://bundlephobia.com/package/logfx)
 [![license](https://img.shields.io/npm/l/logfx.svg)](https://github.com/chintanshah35/logfx/blob/main/LICENSE)
 
-## ✨ Features
+## Features
 
-- 🎨 **Colorful Output** — Eye-catching colors for each log level
-- 😀 **Emoji Prefixes** — Instantly recognize log types at a glance
-- 🏷️ **Namespaces** — Organize logs by module (`auth`, `api`, `db`)
-- 📊 **Log Levels** — `debug`, `info`, `success`, `warn`, `error`
-- 🔇 **Auto-silencing** — Debug logs hidden in production automatically
-- ⏰ **Timestamps** — Optional timestamp display
-- 🌐 **Universal** — Works in Node.js and browsers
-- 📦 **Tiny** — Zero dependencies, ~2KB gzipped
-- 💪 **TypeScript** — Full type support out of the box
+- **Colorful output** with emoji prefixes
+- **Namespaces** to organize logs by module
+- **Log levels** — `debug`, `info`, `success`, `warn`, `error`
+- **Auto-silencing** — debug logs hidden in production
+- **Timestamps** — optional time display
+- **Universal** — works in Node.js and browsers
+- **Tiny** — zero dependencies, ~2KB gzipped
+- **TypeScript** — full type support
 
-## 📦 Installation
+## Installation
 
 ```bash
 npm install logfx
@@ -233,7 +232,3 @@ badge(text, color?)
 ## License
 
 MIT
----
-
-[⭐ Star on GitHub](https://github.com/chintanshah35/logfx) · [📦 npm](https://www.npmjs.com/package/logfx)
-
