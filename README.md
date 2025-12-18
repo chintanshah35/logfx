@@ -4,6 +4,8 @@
 
 [![npm version](https://img.shields.io/npm/v/logfx.svg)](https://www.npmjs.com/package/logfx)
 [![npm downloads](https://img.shields.io/npm/dm/logfx.svg)](https://www.npmjs.com/package/logfx)
+[![build](https://github.com/chintanshah35/logfx/actions/workflows/test-suite.yml/badge.svg)](https://github.com/chintanshah35/logfx/actions)
+[![node](https://img.shields.io/node/v/logfx.svg)](https://nodejs.org)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/logfx)](https://bundlephobia.com/package/logfx)
 [![license](https://img.shields.io/npm/l/logfx.svg)](https://github.com/chintanshah35/logfx/blob/main/LICENSE)
 
