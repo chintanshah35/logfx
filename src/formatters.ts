@@ -1,5 +1,49 @@
 import type { LogLevel, LoggerOptions, LogEntry } from './types'
 import { styles, ansiColors } from './styles'
+import { isProduction } from './env'
+import { safeStringify } from './json'
+
+/**
+ * Check if colors should be disabled
+ * Respects NO_COLOR env var and CI environment detection
+ */
+const shouldDisableColors = (): boolean => {
+  // Check NO_COLOR environment variable (standard)
+  if (typeof process !== 'undefined' && process.env?.NO_COLOR) {
+    return true
+  }
+  
+  // Check FORCE_COLOR (can force colors even in CI)
+  if (typeof process !== 'undefined' && process.env?.FORCE_COLOR === '1') {
+    return false
+  }
+  
+  // Check if we're in a CI environment
+  if (typeof process !== 'undefined' && process.env) {
+    const ciEnvVars = ['CI', 'CONTINUOUS_INTEGRATION', 'BUILD_NUMBER', 'RUN_ID']
+    for (const envVar of ciEnvVars) {
+      if (process.env[envVar]) {
+        return true
+      }
+    }
+  }
+  
+  // Check if stdout is a TTY (terminal)
+  if (typeof process !== 'undefined' && process.stdout && typeof process.stdout.isTTY === 'boolean') {
+    return !process.stdout.isTTY
+  }
+  
+  return false
+}
+
+// Cache the result to avoid checking on every log call
+let colorsDisabled: boolean | null = null
+const getColorsDisabled = (): boolean => {
+  if (colorsDisabled === null) {
+    colorsDisabled = shouldDisableColors()
+  }
+  return colorsDisabled
+}
 
 /**
  * Format timestamp
@@ -69,6 +113,7 @@ export const formatBrowser = (
 
 /**
  * Format log output for Node.js terminal
+ * Handles CI/CD environments by disabling colors when appropriate
  */
 export const formatNode = (
   level: LogLevel,
@@ -78,25 +123,38 @@ export const formatNode = (
   const style = styles[level]
   const colors = ansiColors[level]
   const parts: string[] = []
+  const disableColors = getColorsDisabled()
 
-  // Emoji + Level badge
-  parts.push(`${style.emoji} ${colors.fg}${colors.bg} ${style.label} ${colors.reset}`)
+  // Emoji + Level badge (emoji works in most CI, colors don't)
+  if (disableColors) {
+    parts.push(`${style.emoji} ${style.label}`)
+  } else {
+    parts.push(`${style.emoji} ${colors.fg}${colors.bg} ${style.label} ${colors.reset}`)
+  }
 
   // Namespace
   if (options.namespace) {
-    parts.push(`${colors.fg}[${options.namespace}]${colors.reset}`)
+    if (disableColors) {
+      parts.push(`[${options.namespace}]`)
+    } else {
+      parts.push(`${colors.fg}[${options.namespace}]${colors.reset}`)
+    }
   }
 
   // Timestamp
   if (options.timestamp) {
-    parts.push(`\x1b[90m${formatTimestamp()}\x1b[0m`)
+    if (disableColors) {
+      parts.push(formatTimestamp())
+    } else {
+      parts.push(`\x1b[90m${formatTimestamp()}\x1b[0m`)
+    }
   }
 
-  // Format args
+  // Format args with circular reference and BigInt handling
   const formattedArgs = args.map((arg) => {
     if (typeof arg === 'object' && arg !== null) {
       try {
-        return JSON.stringify(arg, null, 2)
+        return safeStringify(arg, 2)
       } catch {
         return String(arg)
       }
@@ -136,8 +194,13 @@ const serializeError = (error: Error): Record<string, unknown> => {
   }
 }
 
+
 /**
  * Format a log entry as JSON string
+ * 
+ * Edge cases handled:
+ * - Circular references (returns '[Circular]' instead of crashing)
+ * - Metadata key conflicts (custom data is nested under 'data' key)
  */
 export const formatJson = (entry: LogEntry): string => {
   const output: Record<string, unknown> = {
@@ -150,13 +213,15 @@ export const formatJson = (entry: LogEntry): string => {
     output.namespace = entry.namespace
   }
 
+  // Nest custom data under 'data' key to avoid conflicts with metadata keys
+  // This prevents entry.data.timestamp from overwriting output.timestamp
   if (entry.data && Object.keys(entry.data).length > 0) {
-    Object.assign(output, entry.data)
+    output.data = entry.data
   }
 
   if (entry.error) {
     output.error = serializeError(entry.error)
   }
 
-  return JSON.stringify(output)
+  return safeStringify(output)
 }

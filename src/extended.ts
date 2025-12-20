@@ -1,82 +1,135 @@
 import type { BoxOptions, BadgeColor } from './types'
 import { isBrowser } from './styles'
+import { safeConsole } from './console'
+import { safeStringify } from './json'
 
-// Timers
-const timers = new Map<string, number>()
+// Global timers and counters for standalone functions (like console.time/timeEnd)
+const globalTimers = new Map<string, number>()
+const globalCounters = new Map<string, number>()
 
+// Factory functions to create isolated timers/counters per logger instance
+export const createTimerFunctions = () => {
+  const timers = new Map<string, number>()
+  
+  return {
+    time: (label: string): void => {
+      timers.set(label, performance.now())
+    },
+    timeEnd: (label: string): void => {
+      const start = timers.get(label)
+      if (start === undefined) {
+        safeConsole.warn(`Timer '${label}' doesn't exist`)
+        return
+      }
+      
+      const duration = performance.now() - start
+      timers.delete(label)
+      
+      const formatted = duration < 1000 
+        ? `${duration.toFixed(2)}ms`
+        : `${(duration / 1000).toFixed(2)}s`
+      
+      if (isBrowser) {
+        safeConsole.log(`%c⏱️ ${label}: ${formatted}`, 'color: #8B5CF6; font-weight: bold;')
+      } else {
+        safeConsole.log(`\x1b[35m⏱️ ${label}: ${formatted}\x1b[0m`)
+      }
+    }
+  }
+}
+
+export const createCounterFunctions = () => {
+  const counters = new Map<string, number>()
+  
+  return {
+    count: (label: string): void => {
+      const current = counters.get(label) ?? 0
+      const newCount = current + 1
+      counters.set(label, newCount)
+      
+      if (isBrowser) {
+        safeConsole.log(`%c🔢 ${label}: ${newCount}`, 'color: #06B6D4; font-weight: bold;')
+      } else {
+        safeConsole.log(`\x1b[36m🔢 ${label}: ${newCount}\x1b[0m`)
+      }
+    },
+    countReset: (label: string): void => {
+      counters.delete(label)
+    }
+  }
+}
+
+// Standalone functions (global state, like console.time/timeEnd)
 export const time = (label: string): void => {
-  timers.set(label, performance.now())
+  globalTimers.set(label, performance.now())
 }
 
 export const timeEnd = (label: string): void => {
-  const start = timers.get(label)
+  const start = globalTimers.get(label)
   if (start === undefined) {
-    console.warn(`Timer '${label}' doesn't exist`)
+    safeConsole.warn(`Timer '${label}' doesn't exist`)
     return
   }
   
   const duration = performance.now() - start
-  timers.delete(label)
+  globalTimers.delete(label)
   
   const formatted = duration < 1000 
     ? `${duration.toFixed(2)}ms`
     : `${(duration / 1000).toFixed(2)}s`
   
   if (isBrowser) {
-    console.log(`%c⏱️ ${label}: ${formatted}`, 'color: #8B5CF6; font-weight: bold;')
+    safeConsole.log(`%c⏱️ ${label}: ${formatted}`, 'color: #8B5CF6; font-weight: bold;')
   } else {
-    console.log(`\x1b[35m⏱️ ${label}: ${formatted}\x1b[0m`)
+    safeConsole.log(`\x1b[35m⏱️ ${label}: ${formatted}\x1b[0m`)
   }
 }
 
-// Counters
-const counters = new Map<string, number>()
-
 export const count = (label: string): void => {
-  const current = counters.get(label) ?? 0
+  const current = globalCounters.get(label) ?? 0
   const newCount = current + 1
-  counters.set(label, newCount)
+  globalCounters.set(label, newCount)
   
   if (isBrowser) {
-    console.log(`%c🔢 ${label}: ${newCount}`, 'color: #06B6D4; font-weight: bold;')
+    safeConsole.log(`%c🔢 ${label}: ${newCount}`, 'color: #06B6D4; font-weight: bold;')
   } else {
-    console.log(`\x1b[36m🔢 ${label}: ${newCount}\x1b[0m`)
+    safeConsole.log(`\x1b[36m🔢 ${label}: ${newCount}\x1b[0m`)
   }
 }
 
 export const countReset = (label: string): void => {
-  counters.delete(label)
+  globalCounters.delete(label)
 }
 
 // Groups
 export const group = (label: string): void => {
   if (isBrowser) {
-    console.group(`📁 ${label}`)
+    safeConsole.group(label)
   } else {
-    console.log(`\x1b[1m📁 ${label}\x1b[0m`)
-    console.group()
+    safeConsole.log(`\x1b[1m${label}\x1b[0m`)
+    safeConsole.group(label)
   }
 }
 
 export const groupCollapsed = (label: string): void => {
   if (isBrowser) {
-    console.groupCollapsed(`📁 ${label}`)
+    safeConsole.groupCollapsed(label)
   } else {
-    console.log(`\x1b[1m📁 ${label} (collapsed)\x1b[0m`)
+    safeConsole.log(`\x1b[1m${label} (collapsed)\x1b[0m`)
   }
 }
 
 export const groupEnd = (): void => {
-  console.groupEnd()
+  safeConsole.groupEnd()
 }
 
 // Assert - logs only when condition is false
 export const assert = (condition: boolean, ...args: unknown[]): void => {
   if (!condition) {
     if (isBrowser) {
-      console.log('%c❌ Assertion failed:', 'color: #EF4444; font-weight: bold;', ...args)
+      safeConsole.log('%cAssertion failed:', 'color: #EF4444; font-weight: bold;', ...args)
     } else {
-      console.log('\x1b[31m❌ Assertion failed:\x1b[0m', ...args)
+      safeConsole.log('\x1b[31mAssertion failed:\x1b[0m', ...args)
     }
   }
 }
@@ -101,11 +154,12 @@ const boxColors: Record<string, string> = {
 
 export const box = (message: string | string[], options: BoxOptions = {}): void => {
   const { title, padding = 1, borderColor = 'cyan', borderStyle = 'round' } = options
+  const disableColors = getColorsDisabled()
 
   const lines = Array.isArray(message) ? message : [message]
   const chars = boxChars[borderStyle]
-  const color = boxColors[borderColor] || boxColors.cyan
-  const reset = '\x1b[0m'
+  const color = disableColors ? '' : (boxColors[borderColor] || boxColors.cyan)
+  const reset = disableColors ? '' : '\x1b[0m'
 
   const contentWidth = Math.max(...lines.map(l => l.length), title ? title.length : 0)
   const boxWidth = contentWidth + (padding * 2) + 2
@@ -142,16 +196,17 @@ export const box = (message: string | string[], options: BoxOptions = {}): void 
   // Bottom border
   output.push(color + chars.bl + horizontalLine + chars.br + reset)
 
-  console.log('\n' + output.join('\n') + '\n')
+  safeConsole.log('\n' + output.join('\n') + '\n')
 }
 
 // Table
 export const table = (data: Record<string, unknown>[] | Record<string, unknown>): void => {
   if (!data || (Array.isArray(data) && data.length === 0)) {
-    console.log('(empty)')
+    safeConsole.log('(empty)')
     return
   }
 
+  const disableColors = getColorsDisabled()
   const rows = Array.isArray(data) ? data : [data]
   const keys = [...new Set(rows.flatMap(row => Object.keys(row)))]
   
@@ -160,8 +215,8 @@ export const table = (data: Record<string, unknown>[] | Record<string, unknown>)
     colWidths[key] = Math.max(key.length, ...rows.map(row => String(row[key] ?? '').length))
   }
 
-  const color = '\x1b[36m'
-  const reset = '\x1b[0m'
+  const color = disableColors ? '' : '\x1b[36m'
+  const reset = disableColors ? '' : '\x1b[0m'
   const sep = '─'
 
   const topBorder = `┌${keys.map(k => sep.repeat(colWidths[k] + 2)).join('┬')}┐`
@@ -183,7 +238,38 @@ export const table = (data: Record<string, unknown>[] | Record<string, unknown>)
   
   output.push(color + bottomBorder + reset)
 
-  console.log('\n' + output.join('\n') + '\n')
+  safeConsole.log('\n' + output.join('\n') + '\n')
+}
+
+
+// Check if colors should be disabled (same logic as formatters)
+const shouldDisableColors = (): boolean => {
+  if (typeof process !== 'undefined' && process.env?.NO_COLOR) {
+    return true
+  }
+  if (typeof process !== 'undefined' && process.env?.FORCE_COLOR === '1') {
+    return false
+  }
+  if (typeof process !== 'undefined' && process.env) {
+    const ciEnvVars = ['CI', 'CONTINUOUS_INTEGRATION', 'BUILD_NUMBER', 'RUN_ID']
+    for (const envVar of ciEnvVars) {
+      if (process.env[envVar]) {
+        return true
+      }
+    }
+  }
+  if (typeof process !== 'undefined' && process.stdout && typeof process.stdout.isTTY === 'boolean') {
+    return !process.stdout.isTTY
+  }
+  return false
+}
+
+let colorsDisabled: boolean | null = null
+const getColorsDisabled = (): boolean => {
+  if (colorsDisabled === null) {
+    colorsDisabled = shouldDisableColors()
+  }
+  return colorsDisabled
 }
 
 // Diff
@@ -193,6 +279,7 @@ export const diff = (
   label = 'Changes'
 ): void => {
   const allKeys = [...new Set([...Object.keys(before), ...Object.keys(after)])]
+  const disableColors = getColorsDisabled()
   
   const changes: string[] = []
   const added: string[] = []
@@ -203,22 +290,46 @@ export const diff = (
     const afterVal = after[key]
 
     if (!(key in before)) {
-      added.push(`  \x1b[32m+ ${key}: ${JSON.stringify(afterVal)}\x1b[0m`)
+      if (disableColors) {
+        added.push(`  + ${key}: ${safeStringify(afterVal)}`)
+      } else {
+        added.push(`  \x1b[32m+ ${key}: ${safeStringify(afterVal)}\x1b[0m`)
+      }
     } else if (!(key in after)) {
-      removed.push(`  \x1b[31m- ${key}: ${JSON.stringify(beforeVal)}\x1b[0m`)
-    } else if (JSON.stringify(beforeVal) !== JSON.stringify(afterVal)) {
-      changes.push(`  \x1b[33m~ ${key}: ${JSON.stringify(beforeVal)} → ${JSON.stringify(afterVal)}\x1b[0m`)
+      if (disableColors) {
+        removed.push(`  - ${key}: ${safeStringify(beforeVal)}`)
+      } else {
+        removed.push(`  \x1b[31m- ${key}: ${safeStringify(beforeVal)}\x1b[0m`)
+      }
+    } else {
+      const beforeStr = safeStringify(beforeVal)
+      const afterStr = safeStringify(afterVal)
+      if (beforeStr !== afterStr) {
+        if (disableColors) {
+          changes.push(`  ~ ${key}: ${beforeStr} → ${afterStr}`)
+        } else {
+          changes.push(`  \x1b[33m~ ${key}: ${beforeStr} → ${afterStr}\x1b[0m`)
+        }
+      }
     }
   }
 
   if (changes.length === 0 && added.length === 0 && removed.length === 0) {
-    console.log(`\x1b[90m📝 ${label}: (no changes)\x1b[0m`)
+    if (disableColors) {
+      safeConsole.log(`${label}: (no changes)`)
+    } else {
+      safeConsole.log(`\x1b[90m${label}: (no changes)\x1b[0m`)
+    }
     return
   }
 
-  console.log(`\x1b[1m📝 ${label}:\x1b[0m`)
+  if (disableColors) {
+    safeConsole.log(`${label}:`)
+  } else {
+    safeConsole.log(`\x1b[1m${label}:\x1b[0m`)
+  }
   for (const line of [...changes, ...added, ...removed]) {
-    console.log(line)
+    safeConsole.log(line)
   }
 }
 
@@ -235,19 +346,24 @@ const badgeColors: Record<BadgeColor, { bg: string; fg: string }> = {
 }
 
 export const badge = (text: string, color: BadgeColor = 'blue'): void => {
+  const disableColors = getColorsDisabled()
   const colors = badgeColors[color] || badgeColors.blue
-  const reset = '\x1b[0m'
+  const reset = disableColors ? '' : '\x1b[0m'
   
   if (isBrowser) {
     const cssColors: Record<BadgeColor, string> = {
       red: '#EF4444', green: '#10B981', yellow: '#F59E0B', blue: '#3B82F6',
       magenta: '#8B5CF6', cyan: '#06B6D4', white: '#F3F4F6', gray: '#6B7280',
     }
-    console.log(
+    safeConsole.log(
       `%c ${text} `,
       `background: ${cssColors[color]}; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold;`
     )
   } else {
-    console.log(`${colors.bg}${colors.fg} ${text} ${reset}`)
+    if (disableColors) {
+      safeConsole.log(` ${text} `)
+    } else {
+      safeConsole.log(`${colors.bg}${colors.fg} ${text} ${reset}`)
+    }
   }
 }
