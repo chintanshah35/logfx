@@ -1,6 +1,28 @@
 import type { Transport, LogEntry, ConsoleTransportOptions, LogLevel } from '../types'
 import { styles, ansiColors, isBrowser } from '../styles'
 import { formatJson } from '../formatters'
+import { safeConsole } from '../console'
+
+const shouldDisableColors = (): boolean => {
+  if (typeof process !== 'undefined' && process.env?.NO_COLOR) return true
+  if (typeof process !== 'undefined' && process.env?.FORCE_COLOR === '1') return false
+  
+  if (typeof process !== 'undefined' && process.env) {
+    const ciEnvVars = ['CI', 'CONTINUOUS_INTEGRATION', 'BUILD_NUMBER', 'RUN_ID']
+    for (const envVar of ciEnvVars) {
+      if (process.env[envVar]) return true
+    }
+  }
+  
+  if (typeof process !== 'undefined' && process.stdout?.isTTY === false) return true
+  return false
+}
+
+let colorsDisabled: boolean | null = null
+const getColorsDisabled = (): boolean => {
+  if (colorsDisabled === null) colorsDisabled = shouldDisableColors()
+  return colorsDisabled
+}
 
 const logMethods: Record<LogLevel, 'log' | 'warn' | 'error' | 'debug'> = {
   debug: 'debug',
@@ -42,20 +64,21 @@ const prettyBrowser = (entry: LogEntry, options: ConsoleTransportOptions): void 
   if (entry.data && Object.keys(entry.data).length > 0) args.push(entry.data)
   if (entry.error) args.push(entry.error)
 
-  console[logMethods[entry.level]](parts.join(''), ...cssStyles, ...args)
+  safeConsole.call(logMethods[entry.level], parts.join(''), ...cssStyles, ...args)
 }
 
 const prettyNode = (entry: LogEntry, options: ConsoleTransportOptions): void => {
   const style = styles[entry.level]
   const colors = ansiColors[entry.level]
   const parts: string[] = []
+  const disableColors = options.colors === false || getColorsDisabled()
 
-  if (options.colors !== false) {
+  if (!disableColors) {
     parts.push(`${style.emoji} ${colors.fg}${colors.bg} ${style.label} ${colors.reset}`)
     if (entry.namespace) parts.push(`${colors.fg}[${entry.namespace}]${colors.reset}`)
     if (options.timestamps !== false) parts.push(`\x1b[90m${formatTimestamp(entry.timestamp)}\x1b[0m`)
   } else {
-    parts.push(`${style.emoji} [${style.label}]`)
+    parts.push(`${style.emoji} ${style.label}`)
     if (entry.namespace) parts.push(`[${entry.namespace}]`)
     if (options.timestamps !== false) parts.push(formatTimestamp(entry.timestamp))
   }
@@ -64,14 +87,14 @@ const prettyNode = (entry: LogEntry, options: ConsoleTransportOptions): void => 
   if (entry.data && Object.keys(entry.data).length > 0) output.push(JSON.stringify(entry.data, null, 2))
   if (entry.error) output.push(entry.error)
 
-  console[logMethods[entry.level]](...output)
+  safeConsole.call(logMethods[entry.level], ...output)
 }
 
 export const consoleTransport = (options: ConsoleTransportOptions = {}): Transport => ({
   name: 'console',
   log: (entry: LogEntry) => {
     if (options.format === 'json') {
-      console[logMethods[entry.level]](formatJson(entry))
+      safeConsole.call(logMethods[entry.level], formatJson(entry))
       return
     }
     isBrowser ? prettyBrowser(entry, options) : prettyNode(entry, options)

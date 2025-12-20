@@ -1,16 +1,11 @@
-import type { LogLevel, LoggerOptions, Logger, Transport, LogEntry } from './types'
+import type { LogLevel, LoggerOptions, Logger, Transport, LogEntry, RedactOptions, SamplingOptions, BufferOptions } from './types'
 import { isBrowser, isProduction, levelPriority } from './styles'
 import { formatBrowser, formatNode, getConsoleMethod } from './formatters'
-
-const getDebugFilter = (): string | null => {
-  if (typeof process !== 'undefined' && process.env?.DEBUG) {
-    return process.env.DEBUG
-  }
-  if (isBrowser && typeof localStorage !== 'undefined') {
-    return localStorage.getItem('DEBUG')
-  }
-  return null
-}
+import { redactData } from './redact'
+import { LogBuffer } from './buffer'
+import { getDebugFilter } from './env'
+import { safeConsole } from './console'
+import { getErrorMessage } from './utils'
 
 const matchesFilter = (namespace: string | undefined, filter: string | null): boolean => {
   if (!filter) return true
@@ -36,6 +31,17 @@ const matchesFilter = (namespace: string | undefined, filter: string | null): bo
   }
 
   return false
+}
+
+const shouldSample = (level: LogLevel, sampling?: SamplingOptions): boolean => {
+  if (!sampling) return true
+  
+  const rate = sampling[level]
+  if (rate === undefined) return true
+  if (rate >= 1) return true
+  if (rate <= 0) return false
+  
+  return Math.random() < rate
 }
 
 const extractMessage = (args: unknown[]): { message: string; data?: Record<string, unknown>; error?: Error } => {
@@ -68,30 +74,72 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     badge: options.badge,
     format: options.format ?? 'pretty' as const,
     transports: options.transports as Transport[] | undefined,
+    context: options.context as Record<string, unknown> | undefined,
+    redact: options.redact as RedactOptions | undefined,
+    sampling: options.sampling as SamplingOptions | undefined,
+    async: options.async ?? false,
+    buffer: options.buffer as BufferOptions | undefined,
   }
 
   const debugFilter = getDebugFilter()
+  
+  // Initialize buffer for async mode
+  let logBuffer: LogBuffer | null = null
+  if (config.async && config.transports && config.transports.length > 0) {
+    logBuffer = new LogBuffer(
+      config.transports,
+      config.buffer?.size ?? 100,
+      config.buffer?.flushInterval ?? 5000
+    )
+  }
 
   const logInternal = (level: LogLevel, ...args: unknown[]): void => {
     if (!config.enabled) return
     if (levelPriority[level] < levelPriority[config.level]) return
     if (!matchesFilter(config.namespace, debugFilter)) return
     if (level === 'debug' && isProduction()) return
+    if (!shouldSample(level, config.sampling)) return
 
     // Use transports if configured
     if (config.transports && config.transports.length > 0) {
       const { message, data, error } = extractMessage(args)
+      
+      // Merge context with data
+      let mergedData = config.context ? { ...config.context, ...data } : data
+      
+      // Apply redaction
+      if (mergedData && config.redact) {
+        mergedData = redactData(mergedData, config.redact)
+      }
+      
       const entry: LogEntry = {
         timestamp: new Date(),
         level,
         message,
         namespace: config.namespace,
-        data,
+        data: mergedData,
         error
       }
 
+      // Use buffer for async mode
+      if (logBuffer) {
+        logBuffer.add(entry)
+        return
+      }
+
+      // Call transports with error handling
+      // Transports can be sync or async - handle both cases
       for (const transport of config.transports) {
-        transport.log(entry)
+        try {
+          const result = transport.log(entry)
+          if (result instanceof Promise) {
+            result.catch((error) => {
+              safeConsole.error(`[logfx] Transport ${transport.name} failed:`, getErrorMessage(error))
+            })
+          }
+        } catch (error) {
+          safeConsole.error(`[logfx] Transport ${transport.name} threw error:`, getErrorMessage(error))
+        }
       }
       return
     }
@@ -101,10 +149,10 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
 
     if (isBrowser) {
       const { prefix, styles, args: formattedArgs } = formatBrowser(level, config, args)
-      console[method](prefix, ...styles, ...formattedArgs)
+      safeConsole.call(method, prefix, ...styles, ...formattedArgs)
     } else {
       const formattedOutput = formatNode(level, config, args)
-      console[method](...formattedOutput)
+      safeConsole.call(method, ...formattedOutput)
     }
   }
 
@@ -113,18 +161,63 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
       ? `${config.namespace}:${namespace}`
       : namespace
 
+    // Merge parent context with child context
+    const mergedContext = {
+      ...config.context,
+      ...childOptions.context
+    }
+
     return createLogger({
       ...config,
       ...childOptions,
       namespace: childNamespace,
+      context: Object.keys(mergedContext).length > 0 ? mergedContext : undefined,
+      // Child loggers share parent's buffer in async mode
+      async: false,
+      transports: config.transports,
     })
   }
 
   const flush = async (): Promise<void> => {
+    if (logBuffer) {
+      try {
+        await logBuffer.flush()
+      } catch (error) {
+        safeConsole.error('[logfx] Buffer flush failed:', getErrorMessage(error))
+      }
+      return
+    }
+    
     if (!config.transports) return
     for (const transport of config.transports) {
       if (transport.flush) {
-        await transport.flush()
+        try {
+          await transport.flush()
+        } catch (error) {
+          safeConsole.error(`[logfx] Transport ${transport.name} flush failed:`, getErrorMessage(error))
+        }
+      }
+    }
+  }
+
+  const close = async (): Promise<void> => {
+    if (logBuffer) {
+      try {
+        await logBuffer.close()
+      } catch (error) {
+        safeConsole.error('[logfx] Buffer close failed:', getErrorMessage(error))
+      }
+      return
+    }
+    
+    if (!config.transports) return
+    for (const transport of config.transports) {
+      if (transport.close) {
+        try {
+          await transport.close()
+        } catch (error) {
+          safeConsole.error(`[logfx] Transport ${transport.name} close failed:`, getErrorMessage(error))
+        }
       }
     }
   }
@@ -143,5 +236,6 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
       config.level = level
     },
     flush,
+    close,
   }
 }

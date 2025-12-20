@@ -1,5 +1,7 @@
 import type { Transport, LogEntry, WebhookTransportOptions } from '../types'
 import { formatJson } from '../formatters'
+import { safeConsole } from '../console'
+import { getErrorMessage } from '../utils'
 
 export const webhookTransport = (options: WebhookTransportOptions): Transport => {
   const { 
@@ -10,35 +12,62 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
     flushInterval = 5000
   } = options
 
+  // Add max buffer size to prevent unbounded growth (default: 10x batchSize)
+  const maxBufferSize = options.maxBufferSize ?? (batchSize * 10)
+  const timeout = options.timeout ?? 30000
+
   let buffer: LogEntry[] = []
   let flushTimer: ReturnType<typeof setTimeout> | null = null
+  let isFlushing = false
 
   const sendLogs = async (entries: LogEntry[]) => {
     if (entries.length === 0) return
 
-    const body = entries.length === 1 
-      ? formatJson(entries[0])
-      : JSON.stringify(entries.map(entry => JSON.parse(formatJson(entry))))
+    // Always send as array for consistency, even with single entry
+    const body = JSON.stringify(entries.map(entry => JSON.parse(formatJson(entry))))
+
+    // Add timeout using AbortController
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
 
     try {
-      await fetch(url, {
+      const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json', ...headers },
-        body
+        body,
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId)
+      
+      // Log non-2xx responses even in production (silent failures are dangerous)
+      if (!response.ok) {
+        safeConsole.error(`[logfx:webhook] HTTP ${response.status} ${response.statusText} for ${url}`)
+      }
     } catch (error) {
-      // don't crash the app if webhook fails
-      if (typeof process !== 'undefined' && process.env?.DEBUG) {
-        console.error('webhook failed:', error)
+      clearTimeout(timeoutId)
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        safeConsole.error(`[logfx:webhook] Request timeout after ${timeout}ms for ${url}`)
+      } else {
+        safeConsole.error('[logfx:webhook] Failed to send logs:', getErrorMessage(error))
       }
     }
   }
 
   const flushBuffer = async () => {
-    if (buffer.length === 0) return
-    const toSend = buffer
-    buffer = []
-    await sendLogs(toSend)
+    if (buffer.length === 0 || isFlushing) return
+    
+    isFlushing = true
+    try {
+      // Atomic operation: splice removes and returns entries atomically
+      const toSend = buffer.splice(0, buffer.length)
+      if (toSend.length > 0) {
+        await sendLogs(toSend)
+      }
+    } finally {
+      isFlushing = false
+    }
   }
 
   const scheduleFlush = () => {
@@ -47,11 +76,21 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
       flushTimer = null
       await flushBuffer()
     }, flushInterval)
+    
+    // Don't block process exit (allows Node.js to exit even with pending timer)
+    if (flushTimer && typeof flushTimer.unref === 'function') {
+      flushTimer.unref()
+    }
   }
 
   return {
     name: 'webhook',
     log: (entry: LogEntry) => {
+      if (buffer.length >= maxBufferSize) {
+        buffer.shift()
+        safeConsole.warn(`[logfx:webhook] Buffer full, dropping oldest log. Consider increasing maxBufferSize or batchSize.`)
+      }
+      
       buffer.push(entry)
       
       if (buffer.length >= batchSize) {
