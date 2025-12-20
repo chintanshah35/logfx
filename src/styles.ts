@@ -1,19 +1,13 @@
 import type { LogLevel, LogStyle } from './types'
+import { isProduction } from './env'
 
 /**
  * Check if we're running in a browser environment
  */
 export const isBrowser = typeof window !== 'undefined'
 
-/**
- * Check if we're in production mode
- */
-export const isProduction = (): boolean => {
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') {
-    return true
-  }
-  return false
-}
+// Re-export isProduction for backwards compatibility
+export { isProduction }
 
 /**
  * Style definitions for each log level

@@ -35,6 +35,27 @@ export interface WebhookTransportOptions {
   method?: 'POST' | 'PUT'
   batchSize?: number
   flushInterval?: number
+  maxBufferSize?: number
+  timeout?: number
+}
+
+export interface RedactOptions {
+  paths?: string[]
+  keys?: string[]
+  censor?: string
+}
+
+export interface SamplingOptions {
+  debug?: number
+  info?: number
+  success?: number
+  warn?: number
+  error?: number
+}
+
+export interface BufferOptions {
+  size?: number
+  flushInterval?: number
 }
 
 export interface LoggerOptions {
@@ -45,6 +66,11 @@ export interface LoggerOptions {
   badge?: string
   format?: LogFormat
   transports?: Transport[]
+  context?: Record<string, unknown>
+  redact?: RedactOptions
+  sampling?: SamplingOptions
+  async?: boolean
+  buffer?: BufferOptions
 }
 
 export interface LogStyle {
@@ -72,7 +98,8 @@ export interface Logger {
   child: (namespace: string, options?: Partial<LoggerOptions>) => Logger
   setEnabled: (enabled: boolean) => void
   setLevel: (level: LogLevel) => void
-  flush?: () => Promise<void>
+  flush: () => Promise<void>
+  close: () => Promise<void>
 }
 
 export interface ExtendedLogger extends Logger {

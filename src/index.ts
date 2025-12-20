@@ -12,10 +12,58 @@ import type {
   LogFormat,
   ConsoleTransportOptions,
   FileTransportOptions,
-  WebhookTransportOptions
+  WebhookTransportOptions,
+  RedactOptions,
+  SamplingOptions,
+  BufferOptions
 } from './types'
 
 const defaultLogger = createLogger()
+
+// Add process exit handler to flush/close default logger if it has transports
+if (typeof process !== 'undefined' && process.on) {
+  const cleanup = async () => {
+    try {
+      await defaultLogger.flush()
+      await defaultLogger.close()
+    } catch {
+      // Ignore errors during cleanup
+    }
+  }
+  
+  // Handle graceful shutdown
+  process.once('SIGINT', async () => {
+    await cleanup()
+    process.exit(0)
+  })
+  
+  process.once('SIGTERM', async () => {
+    await cleanup()
+    process.exit(0)
+  })
+  
+  // Handle uncaught exceptions - try to flush logs before exit
+  process.once('uncaughtException', async (error) => {
+    try {
+      defaultLogger.error('Uncaught exception:', error)
+      await cleanup()
+    } catch {
+      // Ignore errors during emergency cleanup
+    }
+    process.exit(1)
+  })
+  
+  // Handle unhandled promise rejections
+  process.once('unhandledRejection', async (reason) => {
+    try {
+      defaultLogger.error('Unhandled rejection:', reason)
+      await cleanup()
+    } catch {
+      // Ignore errors during emergency cleanup
+    }
+    process.exit(1)
+  })
+}
 
 export const log = defaultLogger
 
@@ -47,16 +95,21 @@ export { diff } from './extended'
 export { badge } from './extended'
 
 import * as extended from './extended'
+import { createTimerFunctions, createCounterFunctions } from './extended'
 
 export const createExtendedLogger = (options?: LoggerOptions): ExtendedLogger => {
   const baseLogger = createLogger(options)
   
+  // Create isolated timer and counter functions for this logger instance
+  const timerFunctions = createTimerFunctions()
+  const counterFunctions = createCounterFunctions()
+  
   return {
     ...baseLogger,
-    time: extended.time,
-    timeEnd: extended.timeEnd,
-    count: extended.count,
-    countReset: extended.countReset,
+    time: timerFunctions.time,
+    timeEnd: timerFunctions.timeEnd,
+    count: counterFunctions.count,
+    countReset: counterFunctions.countReset,
     group: extended.group,
     groupCollapsed: extended.groupCollapsed,
     groupEnd: extended.groupEnd,
@@ -82,7 +135,10 @@ export type {
   LogFormat,
   ConsoleTransportOptions,
   FileTransportOptions,
-  WebhookTransportOptions
+  WebhookTransportOptions,
+  RedactOptions,
+  SamplingOptions,
+  BufferOptions
 }
 
 export default log
