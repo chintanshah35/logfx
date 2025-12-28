@@ -1,4 +1,4 @@
-# ⚡ logfx
+# logfx
 
 > Beautiful, colorful console logging with emojis, levels & namespaces
 
@@ -16,8 +16,12 @@
 - **Log levels** — `debug`, `info`, `success`, `warn`, `error`
 - **Auto-silencing** — debug logs hidden in production
 - **Timestamps** — optional time display
+- **Context** — attach metadata to all logs
+- **Field redaction** — hide sensitive data automatically
+- **Log sampling** — reduce log volume in production
+- **Async logging** — buffer and batch logs for performance
 - **Universal** — works in Node.js and browsers
-- **Tiny** — zero dependencies, ~2KB gzipped
+- **Tiny** — zero dependencies, ~3KB gzipped
 - **TypeScript** — full type support
 
 ## Installation
@@ -86,6 +90,11 @@ const log = createLogger({
 | `timestamp` | `boolean` | `false` | Show timestamps |
 | `enabled` | `boolean` | `true` | Enable/disable logging |
 | `transports` | `Transport[]` | - | Custom transports |
+| `context` | `object` | - | Metadata added to all logs |
+| `redact` | `RedactOptions` | - | Field redaction config |
+| `sampling` | `SamplingOptions` | - | Log sampling rates |
+| `async` | `boolean` | `false` | Enable async buffered logging |
+| `buffer` | `BufferOptions` | - | Buffer size and flush interval |
 
 ## Transports
 
@@ -125,6 +134,90 @@ log.info('User login', { userId: 123 })
 | `console` | Pretty or JSON output to stdout |
 | `file` | Write to file (Node.js only) |
 | `webhook` | POST logs to HTTP endpoint |
+
+## Context
+
+Attach metadata to all logs from a logger:
+
+```typescript
+const log = createLogger({
+  context: {
+    service: 'api-gateway',
+    version: '1.2.0',
+    env: process.env.NODE_ENV
+  },
+  transports: [transports.console({ format: 'json' })]
+})
+
+log.info('Request received', { path: '/users' })
+// {"service":"api-gateway","version":"1.2.0","env":"production","path":"/users",...}
+```
+
+Child loggers inherit and can extend context:
+
+```typescript
+const requestLog = log.child('request', { 
+  context: { requestId: 'req-123' } 
+})
+requestLog.info('Processing')
+// Includes service, version, env, AND requestId
+```
+
+## Field Redaction
+
+Automatically hide sensitive data:
+
+```typescript
+const log = createLogger({
+  redact: {
+    keys: ['password', 'token', 'apiKey'],
+    paths: ['user.email', 'config.secret'],
+    censor: '[HIDDEN]'  // default: '[REDACTED]'
+  },
+  transports: [transports.console({ format: 'json' })]
+})
+
+log.info('User login', { username: 'john', password: 'secret123' })
+// {"username":"john","password":"[HIDDEN]",...}
+```
+
+## Log Sampling
+
+Reduce log volume by sampling:
+
+```typescript
+const log = createLogger({
+  sampling: {
+    debug: 0.1,   // 10% of debug logs
+    info: 0.5,    // 50% of info logs
+    warn: 1.0,    // 100% of warnings
+    error: 1.0    // 100% of errors (never sample errors)
+  },
+  transports: [transports.console()]
+})
+```
+
+## Async Logging
+
+Buffer logs and flush in batches for better performance:
+
+```typescript
+const log = createLogger({
+  async: true,
+  buffer: {
+    size: 100,          // flush after 100 logs
+    flushInterval: 5000 // or every 5 seconds
+  },
+  transports: [transports.file({ path: './app.log' })]
+})
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  await log.flush()
+  await log.close()
+  process.exit(0)
+})
+```
 
 ## Extended Features
 
@@ -191,7 +284,7 @@ table(users)
 diff({ name: 'John', age: 25 }, { name: 'Jane', age: 25, email: 'jane@example.com' })
 ```
 ```
-📝 Changes:
+Changes:
   ~ name: "John" → "Jane"
   + email: "jane@example.com"
 ```
@@ -216,9 +309,11 @@ log.info(...args)
 log.success(...args)
 log.warn(...args)
 log.error(...args)
-log.child(namespace)
+log.child(namespace, options?)
 log.setEnabled(bool)
 log.setLevel(level)
+log.flush()   // flush buffered logs
+log.close()   // flush and close transports
 
 // Extended
 time(label) / timeEnd(label)
