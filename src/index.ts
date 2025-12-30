@@ -21,7 +21,7 @@ import type {
 const defaultLogger = createLogger()
 
 // Add process exit handler to flush/close default logger if it has transports
-if (typeof process !== 'undefined' && process.on) {
+if (typeof process !== 'undefined' && typeof process.on === 'function') {
   const cleanup = async () => {
     try {
       await defaultLogger.flush()
