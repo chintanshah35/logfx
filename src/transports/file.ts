@@ -130,7 +130,7 @@ export const fileTransport = (options: FileTransportOptions): Transport => {
     
     if (!writeStream) return
     
-    if (writeStream && pendingWrites.length > 0) {
+    if (pendingWrites.length > 0) {
       const toWrite = pendingWrites.splice(0, pendingWrites.length)
       for (const line of toWrite) {
         if (writeStream) {
@@ -162,9 +162,10 @@ export const fileTransport = (options: FileTransportOptions): Transport => {
       await flushPending()
       
       if (writeStream) {
+        const stream = writeStream
+        writeStream = null
         return new Promise<void>((resolve) => {
-          writeStream!.end(() => {
-            writeStream = null
+          stream.end(() => {
             resolve()
           })
         })
