@@ -49,7 +49,10 @@ log.error('Connection failed', new Error('Timeout'))
 ✅ SUCCESS User created!
 ⚠️ WARN    Memory usage high { usage: '85%' }
 🔴 ERROR   Connection failed Error: Timeout
+    at ...
 ```
+
+Errors include full stack traces when available.
 
 ## Namespaced Loggers
 
@@ -127,6 +130,15 @@ log.info('User login', { userId: 123 })
 // {"timestamp":"2025-12-17T...","level":"info","message":"User login","userId":123}
 ```
 
+File transport format option:
+
+```typescript
+transports.file({ 
+  path: './logs/app.log',
+  format: 'json'  // or 'pretty' for plain text (default: 'json')
+})
+```
+
 ### Available Transports
 
 | Transport | Description |
@@ -134,6 +146,22 @@ log.info('User login', { userId: 123 })
 | `console` | Pretty or JSON output to stdout |
 | `file` | Write to file (Node.js only) |
 | `webhook` | POST logs to HTTP endpoint |
+
+### Webhook Transport Options
+
+```typescript
+transports.webhook({
+  url: 'https://your-api.com/logs',
+  method: 'POST',  // default, or 'PUT'
+  headers: { 'Authorization': 'Bearer token' },
+  batchSize: 10,  // default: 10 logs per batch
+  flushInterval: 5000,  // default: 5 seconds
+  maxBufferSize: 100,  // default: 10x batchSize, drops oldest when full
+  timeout: 30000  // default: 30 seconds
+})
+```
+
+Batches are sent automatically when full or on the flush interval. Oldest logs are dropped if the buffer exceeds maxBufferSize.
 
 ## Context
 
