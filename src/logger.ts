@@ -165,8 +165,7 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
       namespace: childNamespace,
       context: Object.keys(mergedContext).length > 0 ? mergedContext : undefined,
       async: false,
-      transports: config.transports,
-      transports: config.transports,
+      transports: config.transports
     })
   }
 
