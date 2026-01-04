@@ -36,7 +36,6 @@ const shouldDisableColors = (): boolean => {
   return false
 }
 
-// Cache the result to avoid checking on every log call
 let colorsDisabled: boolean | null = null
 const getColorsDisabled = (): boolean => {
   if (colorsDisabled === null) {
@@ -45,9 +44,6 @@ const getColorsDisabled = (): boolean => {
   return colorsDisabled
 }
 
-/**
- * Format timestamp
- */
 export const formatTimestamp = (): string => {
   const now = new Date()
   const hours = now.getHours().toString().padStart(2, '0')
@@ -57,17 +53,11 @@ export const formatTimestamp = (): string => {
   return `${hours}:${minutes}:${seconds}.${ms}`
 }
 
-/**
- * Format namespace for display
- */
 export const formatNamespace = (namespace?: string): string => {
   if (!namespace) return ''
   return `[${namespace}]`
 }
 
-/**
- * Format log output for browser console
- */
 export const formatBrowser = (
   level: LogLevel,
   options: LoggerOptions,

@@ -12,7 +12,6 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
     flushInterval = 5000
   } = options
 
-  // Add max buffer size to prevent unbounded growth (default: 10x batchSize)
   const maxBufferSize = options.maxBufferSize ?? (batchSize * 10)
   const timeout = options.timeout ?? 30000
 
@@ -23,10 +22,8 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
   const sendLogs = async (entries: LogEntry[]) => {
     if (entries.length === 0) return
 
-    // Always send as array for consistency, even with single entry
     const body = JSON.stringify(entries.map(entry => JSON.parse(formatJson(entry))))
 
-    // Add timeout using AbortController
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), timeout)
 
@@ -40,7 +37,6 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
       
       clearTimeout(timeoutId)
       
-      // Log non-2xx responses even in production (silent failures are dangerous)
       if (!response.ok) {
         safeConsole.error(`[logfx:webhook] HTTP ${response.status} ${response.statusText} for ${url}`)
       }
@@ -77,7 +73,6 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
       await flushBuffer()
     }, flushInterval)
     
-    // Don't block process exit (allows Node.js to exit even with pending timer)
     if (flushTimer && typeof flushTimer.unref === 'function') {
       flushTimer.unref()
     }

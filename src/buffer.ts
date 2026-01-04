@@ -39,14 +39,12 @@ export class LogBuffer {
   add(entry: LogEntry): void {
     this.buffer.push(entry)
     
-    // Trigger flush if buffer is full, but don't await (non-blocking)
     if (this.buffer.length >= this.maxSize && !this.isFlushing) {
       this.flush()
     }
   }
 
   async flush(): Promise<void> {
-    // Prevent concurrent flushes
     if (this.isFlushing) {
       return this.flushPromise ?? Promise.resolve()
     }
@@ -65,7 +63,6 @@ export class LogBuffer {
           for (const transport of this.transports) {
             try {
               const result = transport.log(entry)
-              // Handle both sync and async transports
               if (result instanceof Promise) {
                 await result
               }

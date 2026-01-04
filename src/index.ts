@@ -20,7 +20,6 @@ import type {
 
 const defaultLogger = createLogger()
 
-// Add process exit handler to flush/close default logger if it has transports
 if (typeof process !== 'undefined' && typeof process.on === 'function') {
   const cleanup = async () => {
     try {
@@ -31,7 +30,6 @@ if (typeof process !== 'undefined' && typeof process.on === 'function') {
     }
   }
   
-  // Handle graceful shutdown
   process.once('SIGINT', async () => {
     await cleanup()
     process.exit(0)
@@ -42,7 +40,7 @@ if (typeof process !== 'undefined' && typeof process.on === 'function') {
     process.exit(0)
   })
   
-  // Handle uncaught exceptions - try to flush logs before exit
+  // Try to flush logs before exit
   process.once('uncaughtException', async (error) => {
     try {
       defaultLogger.error('Uncaught exception:', error)
@@ -53,7 +51,6 @@ if (typeof process !== 'undefined' && typeof process.on === 'function') {
     process.exit(1)
   })
   
-  // Handle unhandled promise rejections
   process.once('unhandledRejection', async (reason) => {
     try {
       defaultLogger.error('Unhandled rejection:', reason)
@@ -73,7 +70,6 @@ export const logger = (namespace: string, options?: Partial<LoggerOptions>): Log
   return createLogger({ ...options, namespace })
 }
 
-// Transports
 import { consoleTransport, fileTransport, webhookTransport } from './transports'
 
 export const transports = {
@@ -84,7 +80,6 @@ export const transports = {
 
 export { consoleTransport, fileTransport, webhookTransport }
 
-// Extended features
 export { time, timeEnd } from './extended'
 export { count, countReset } from './extended'
 export { group, groupCollapsed, groupEnd } from './extended'
@@ -100,7 +95,6 @@ import { createTimerFunctions, createCounterFunctions } from './extended'
 export const createExtendedLogger = (options?: LoggerOptions): ExtendedLogger => {
   const baseLogger = createLogger(options)
   
-  // Create isolated timer and counter functions for this logger instance
   const timerFunctions = createTimerFunctions()
   const counterFunctions = createCounterFunctions()
   
@@ -121,7 +115,6 @@ export const createExtendedLogger = (options?: LoggerOptions): ExtendedLogger =>
   }
 }
 
-// Types
 export type { 
   Logger, 
   ExtendedLogger,

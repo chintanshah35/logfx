@@ -83,7 +83,6 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
 
   const debugFilter = getDebugFilter()
   
-  // Initialize buffer for async mode
   let logBuffer: LogBuffer | null = null
   if (config.async && config.transports && config.transports.length > 0) {
     logBuffer = new LogBuffer(
@@ -100,14 +99,11 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     if (level === 'debug' && isProduction()) return
     if (!shouldSample(level, config.sampling)) return
 
-    // Use transports if configured
     if (config.transports && config.transports.length > 0) {
       const { message, data, error } = extractMessage(args)
       
-      // Merge context with data
       let mergedData = config.context ? { ...config.context, ...data } : data
       
-      // Apply redaction
       if (mergedData && config.redact) {
         mergedData = redactData(mergedData, config.redact)
       }
@@ -121,13 +117,11 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
         error
       }
 
-      // Use buffer for async mode
       if (logBuffer) {
         logBuffer.add(entry)
         return
       }
 
-      // Call transports with error handling
       // Transports can be sync or async - handle both cases
       for (const transport of config.transports) {
         try {
@@ -144,7 +138,6 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
       return
     }
 
-    // Legacy pretty output
     const method = getConsoleMethod(level)
 
     if (isBrowser) {
@@ -161,7 +154,6 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
       ? `${config.namespace}:${namespace}`
       : namespace
 
-    // Merge parent context with child context
     const mergedContext = {
       ...config.context,
       ...childOptions.context
@@ -172,8 +164,8 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
       ...childOptions,
       namespace: childNamespace,
       context: Object.keys(mergedContext).length > 0 ? mergedContext : undefined,
-      // Child loggers share parent's buffer in async mode
       async: false,
+      transports: config.transports,
       transports: config.transports,
     })
   }
