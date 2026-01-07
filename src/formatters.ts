@@ -1,6 +1,5 @@
 import type { LogLevel, LoggerOptions, LogEntry } from './types'
 import { styles, ansiColors } from './styles'
-import { isProduction } from './env'
 import { safeStringify } from './json'
 
 /**
