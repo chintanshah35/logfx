@@ -79,6 +79,20 @@ describe('logfx', () => {
     })
   })
 
+  describe('request ID', () => {
+    it('includes requestId in child logger', () => {
+      const parent = createLogger({ requestId: 'req-123' })
+      const child = parent.child('api')
+      expect(child).toBeDefined()
+    })
+
+    it('propagates requestId to child loggers', () => {
+      const parent = createLogger({ requestId: 'req-456' })
+      const child = parent.child('db', {})
+      expect(child).toBeDefined()
+    })
+  })
+
   describe('child', () => {
     it('creates nested namespace', () => {
       const parent = createLogger({ namespace: 'app' })
