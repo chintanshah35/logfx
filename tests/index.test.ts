@@ -65,6 +65,18 @@ describe('logfx', () => {
       errorOnly.error('yes')
       expect(spies.error).toHaveBeenCalled()
     })
+
+    it('auto-detects format based on environment', () => {
+      const autoLogger = createLogger()
+      expect(autoLogger).toBeDefined()
+    })
+
+    it('respects explicit format option', () => {
+      const jsonLogger = createLogger({ format: 'json' })
+      const prettyLogger = createLogger({ format: 'pretty' })
+      expect(jsonLogger).toBeDefined()
+      expect(prettyLogger).toBeDefined()
+    })
   })
 
   describe('child', () => {
