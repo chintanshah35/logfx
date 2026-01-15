@@ -83,6 +83,7 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     sampling: options.sampling as SamplingOptions | undefined,
     async: options.async ?? false,
     buffer: options.buffer as BufferOptions | undefined,
+    requestId: options.requestId as string | undefined,
   }
 
   const debugFilter = getDebugFilter()
@@ -118,7 +119,8 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
         message,
         namespace: config.namespace,
         data: mergedData,
-        error
+        error,
+        requestId: config.requestId
       }
 
       if (logBuffer) {
@@ -168,6 +170,7 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
       ...childOptions,
       namespace: childNamespace,
       context: Object.keys(mergedContext).length > 0 ? mergedContext : undefined,
+      requestId: childOptions.requestId ?? config.requestId,
       async: false,
       transports: config.transports
     })
