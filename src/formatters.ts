@@ -202,6 +202,10 @@ export const formatJson = (entry: LogEntry): string => {
     output.namespace = entry.namespace
   }
 
+  if (entry.requestId) {
+    output.requestId = entry.requestId
+  }
+
   // Nest custom data under 'data' key to avoid conflicts with metadata keys
   // This prevents entry.data.timestamp from overwriting output.timestamp
   if (entry.data && Object.keys(entry.data).length > 0) {
