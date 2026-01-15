@@ -92,12 +92,27 @@ const log = createLogger({
 | `level` | `LogLevel` | `'debug'` | Minimum level to display |
 | `timestamp` | `boolean` | `false` | Show timestamps |
 | `enabled` | `boolean` | `true` | Enable/disable logging |
+| `format` | `'pretty' \| 'json'` | auto | Output format (auto-detects based on NODE_ENV) |
 | `transports` | `Transport[]` | - | Custom transports |
 | `context` | `object` | - | Metadata added to all logs |
 | `redact` | `RedactOptions` | - | Field redaction config |
 | `sampling` | `SamplingOptions` | - | Log sampling rates |
 | `async` | `boolean` | `false` | Enable async buffered logging |
 | `buffer` | `BufferOptions` | - | Buffer size and flush interval |
+
+### Auto-Detection
+
+logfx automatically picks the right format for your environment:
+
+- **Development** (`NODE_ENV !== 'production'`) → pretty output with colors
+- **Production** (`NODE_ENV === 'production'`) → JSON format
+
+Override with explicit `format` option:
+
+```typescript
+const log = createLogger({ format: 'json' })  // Force JSON
+const log = createLogger({ format: 'pretty' })  // Force pretty
+```
 
 ## Transports
 
