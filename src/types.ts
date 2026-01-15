@@ -9,6 +9,7 @@ export interface LogEntry {
   namespace?: string
   data?: Record<string, unknown>
   error?: Error
+  requestId?: string
 }
 
 export interface Transport {
@@ -71,6 +72,7 @@ export interface LoggerOptions {
   sampling?: SamplingOptions
   async?: boolean
   buffer?: BufferOptions
+  requestId?: string
 }
 
 export interface LogStyle {
