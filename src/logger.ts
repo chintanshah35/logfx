@@ -65,6 +65,10 @@ const extractMessage = (args: unknown[]): { message: string; data?: Record<strin
   return { message, data, error }
 }
 
+const getDefaultFormat = (): 'pretty' | 'json' => {
+  return isProduction() ? 'json' : 'pretty'
+}
+
 export const createLogger = (options: LoggerOptions = {}): Logger => {
   const config = {
     namespace: options.namespace as string | undefined,
@@ -72,7 +76,7 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     timestamp: options.timestamp ?? false,
     enabled: options.enabled ?? !isProduction(),
     badge: options.badge,
-    format: options.format ?? 'pretty' as const,
+    format: options.format ?? getDefaultFormat(),
     transports: options.transports as Transport[] | undefined,
     context: options.context as Record<string, unknown> | undefined,
     redact: options.redact as RedactOptions | undefined,
