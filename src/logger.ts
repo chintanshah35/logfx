@@ -6,6 +6,7 @@ import { LogBuffer } from './buffer'
 import { getDebugFilter } from './env'
 import { safeConsole } from './console'
 import { getErrorMessage } from './utils'
+import { startTimer, endTimer, measure } from './performance'
 
 const matchesFilter = (namespace: string | undefined, filter: string | null): boolean => {
   if (!filter) return true
@@ -235,5 +236,16 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     },
     flush,
     close,
+    time: (label: string) => {
+      startTimer(label)
+      logInternal('debug', `⏱️  ${label} started`)
+    },
+    timeEnd: (label: string) => {
+      const duration = endTimer(label)
+      if (duration !== null) {
+        logInternal('debug', `⏱️  ${label}: ${duration}ms`)
+      }
+    },
+    measure,
   }
 }

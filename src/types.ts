@@ -109,6 +109,9 @@ export interface Logger {
   setLevel: (level: LogLevel) => void
   flush: () => Promise<void>
   close: () => Promise<void>
+  time: (label: string) => void
+  timeEnd: (label: string) => void
+  measure: <T>(label: string, fn: () => T | Promise<T>) => Promise<{ result: T; duration: number }>
 }
 
 export interface ExtendedLogger extends Logger {
