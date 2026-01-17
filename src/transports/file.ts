@@ -4,6 +4,24 @@ import { safeStringify } from '../json'
 import { safeConsole } from '../console'
 import { getErrorMessage } from '../utils'
 
+const parseSize = (size: number | string): number => {
+  if (typeof size === 'number') return size
+  
+  const units: Record<string, number> = {
+    b: 1,
+    kb: 1024,
+    mb: 1024 * 1024,
+    gb: 1024 * 1024 * 1024
+  }
+  
+  const match = size.toLowerCase().match(/^(\d+(?:\.\d+)?)\s*(b|kb|mb|gb)?$/)
+  if (!match) return 10 * 1024 * 1024
+  
+  const value = parseFloat(match[1])
+  const unit = match[2] || 'b'
+  return value * units[unit]
+}
+
 const formatPlainText = (entry: LogEntry): string => {
   const timestamp = entry.timestamp.toISOString()
   const level = entry.level.toUpperCase().padEnd(7)
@@ -22,7 +40,7 @@ const formatPlainText = (entry: LogEntry): string => {
 }
 
 export const fileTransport = (options: FileTransportOptions): Transport => {
-  const { path, format = 'json' } = options
+  const { path, format = 'json', rotation } = options
   
   if (typeof process === 'undefined') {
     safeConsole.warn('fileTransport only works in Node.js')
@@ -34,6 +52,8 @@ export const fileTransport = (options: FileTransportOptions): Transport => {
   let pendingWrites: string[] = []
   let initPromise: Promise<void> | null = null
   let initializationError: Error | null = null
+  let currentSize = 0
+  const maxSize = rotation?.maxSize ? parseSize(rotation.maxSize) : null
 
   const initialize = async () => {
     // Promise-based lock to prevent concurrent initializations
@@ -97,17 +117,54 @@ export const fileTransport = (options: FileTransportOptions): Transport => {
     return initPromise
   }
 
+  const shouldRotate = (): boolean => {
+    if (!maxSize || !fsModule) return false
+    
+    try {
+      if (fsModule.existsSync(path)) {
+        const stats = fsModule.statSync(path)
+        return stats.size >= maxSize
+      }
+    } catch {
+      return false
+    }
+    
+    return false
+  }
+
+  const rotateFile = async () => {
+    if (!fsModule) return
+    
+    try {
+      if (writeStream) {
+        writeStream.end()
+        writeStream = null
+      }
+      
+      currentSize = 0
+    } catch (error) {
+      safeConsole.error(`[logfx:file] Rotation failed for ${path}:`, getErrorMessage(error))
+    }
+  }
+
   const writeLine = (line: string) => {
-    // If initialization failed, don't try to write
     if (initializationError) {
+      return
+    }
+    
+    if (shouldRotate()) {
+      rotateFile().catch(() => {})
+      pendingWrites.push(line)
       return
     }
     
     if (writeStream) {
       try {
-        const written = writeStream.write(line + '\n')
+        const lineData = line + '\n'
+        const written = writeStream.write(lineData)
+        currentSize += Buffer.byteLength(lineData)
+        
         if (!written) {
-          // Backpressure - buffer for later
           pendingWrites.push(line)
         }
       } catch (error) {
