@@ -25,9 +25,16 @@ export interface ConsoleTransportOptions {
   timestamps?: boolean
 }
 
+export interface RotationOptions {
+  maxSize?: number | string
+  maxFiles?: number
+  compress?: boolean
+}
+
 export interface FileTransportOptions {
   path: string
   format?: LogFormat
+  rotation?: RotationOptions
 }
 
 export interface WebhookTransportOptions {

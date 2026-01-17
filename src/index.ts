@@ -134,7 +134,8 @@ export type {
   WebhookTransportOptions,
   RedactOptions,
   SamplingOptions,
-  BufferOptions
+  BufferOptions,
+  RotationOptions
 }
 
 export default log
