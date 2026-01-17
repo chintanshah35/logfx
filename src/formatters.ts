@@ -172,15 +172,32 @@ export const getConsoleMethod = (level: LogLevel): 'log' | 'warn' | 'error' | 'd
   }
 }
 
-/**
- * Serialize error for JSON output
- */
 const serializeError = (error: Error): Record<string, unknown> => {
-  return {
+  const serialized: Record<string, unknown> = {
     name: error.name,
     message: error.message,
     stack: error.stack
   }
+  
+  const errorObj = error as any
+  
+  if (errorObj.code) {
+    serialized.code = errorObj.code
+  }
+  
+  if (errorObj.cause) {
+    serialized.cause = errorObj.cause instanceof Error 
+      ? serializeError(errorObj.cause)
+      : errorObj.cause
+  }
+  
+  for (const key of Object.keys(errorObj)) {
+    if (!['name', 'message', 'stack', 'code', 'cause'].includes(key)) {
+      serialized[key] = errorObj[key]
+    }
+  }
+  
+  return serialized
 }
 
 
