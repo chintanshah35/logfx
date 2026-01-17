@@ -46,7 +46,10 @@
     "terminal",
     "cli",
     "fx",
-    "effects"
+    "effects",
+    "express",
+    "middleware",
+    "request-id"
   ],
   "author": "",
   "license": "MIT",
