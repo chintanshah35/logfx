@@ -141,7 +141,20 @@ export const fileTransport = (options: FileTransportOptions): Transport => {
         writeStream = null
       }
       
+      if (!fsModule.existsSync(path)) {
+        currentSize = 0
+        return
+      }
+      
+      let rotateIndex = 1
+      while (fsModule.existsSync(`${path}.${rotateIndex}`)) {
+        rotateIndex++
+      }
+      
+      fsModule.renameSync(path, `${path}.${rotateIndex}`)
       currentSize = 0
+      
+      await initialize()
     } catch (error) {
       safeConsole.error(`[logfx:file] Rotation failed for ${path}:`, getErrorMessage(error))
     }
