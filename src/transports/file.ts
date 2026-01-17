@@ -139,8 +139,11 @@ export const fileTransport = (options: FileTransportOptions): Transport => {
       const files: { path: string; index: number }[] = []
       let index = 1
       
-      while (fsModule.existsSync(`${path}.${index}`)) {
-        files.push({ path: `${path}.${index}`, index })
+      while (fsModule.existsSync(`${path}.${index}`) || fsModule.existsSync(`${path}.${index}.gz`)) {
+        const filePath = fsModule.existsSync(`${path}.${index}.gz`) 
+          ? `${path}.${index}.gz` 
+          : `${path}.${index}`
+        files.push({ path: filePath, index })
         index++
       }
       
@@ -153,12 +156,32 @@ export const fileTransport = (options: FileTransportOptions): Transport => {
           try {
             fsModule.unlinkSync(file.path)
           } catch {
-            // Ignore errors deleting old files
+            // Ignore errors
           }
         }
       }
     } catch {
       // Ignore cleanup errors
+    }
+  }
+
+  const compressFile = async (filePath: string) => {
+    if (!fsModule || !rotation?.compress) return
+    
+    try {
+      const zlib = await import('zlib')
+      const { pipeline } = await import('stream')
+      const { promisify } = await import('util')
+      const pipe = promisify(pipeline)
+      
+      const source = fsModule.createReadStream(filePath)
+      const destination = fsModule.createWriteStream(`${filePath}.gz`)
+      const gzip = zlib.createGzip()
+      
+      await pipe(source, gzip, destination)
+      fsModule.unlinkSync(filePath)
+    } catch (error) {
+      safeConsole.error(`[logfx:file] Compression failed for ${filePath}:`, getErrorMessage(error))
     }
   }
 
@@ -177,12 +200,17 @@ export const fileTransport = (options: FileTransportOptions): Transport => {
       }
       
       let rotateIndex = 1
-      while (fsModule.existsSync(`${path}.${rotateIndex}`)) {
+      while (fsModule.existsSync(`${path}.${rotateIndex}`) || fsModule.existsSync(`${path}.${rotateIndex}.gz`)) {
         rotateIndex++
       }
       
-      fsModule.renameSync(path, `${path}.${rotateIndex}`)
+      const rotatedPath = `${path}.${rotateIndex}`
+      fsModule.renameSync(path, rotatedPath)
       currentSize = 0
+      
+      if (rotation?.compress) {
+        compressFile(rotatedPath).catch(() => {})
+      }
       
       cleanupOldFiles()
       
