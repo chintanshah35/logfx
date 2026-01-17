@@ -34,6 +34,27 @@ export const expressLogger = (options: ExpressLoggerOptions = {}) => {
       requestId
     })
 
+    const startTime = Date.now()
+
+    req.log.info('Incoming request', {
+      method: req.method,
+      path: req.path,
+      query: Object.keys(req.query).length > 0 ? req.query : undefined,
+      ip: req.ip
+    })
+
+    res.on('finish', () => {
+      const duration = Date.now() - startTime
+      const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'
+      
+      req.log[level]('Request completed', {
+        method: req.method,
+        path: req.path,
+        status: res.statusCode,
+        duration: `${duration}ms`
+      })
+    })
+
     next()
   }
 }
