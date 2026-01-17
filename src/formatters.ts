@@ -141,6 +141,14 @@ export const formatNode = (
 
   // Format args with circular reference and BigInt handling
   const formattedArgs = args.map((arg) => {
+    if (arg instanceof Error) {
+      if (disableColors) {
+        return arg.stack || `${arg.name}: ${arg.message}`
+      }
+      const stack = arg.stack || `${arg.name}: ${arg.message}`
+      return `\x1b[31m${stack}\x1b[0m`
+    }
+    
     if (typeof arg === 'object' && arg !== null) {
       try {
         return safeStringify(arg, 2)
