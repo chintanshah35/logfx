@@ -132,6 +132,36 @@ export const fileTransport = (options: FileTransportOptions): Transport => {
     return false
   }
 
+  const cleanupOldFiles = () => {
+    if (!fsModule || !rotation?.maxFiles) return
+    
+    try {
+      const files: { path: string; index: number }[] = []
+      let index = 1
+      
+      while (fsModule.existsSync(`${path}.${index}`)) {
+        files.push({ path: `${path}.${index}`, index })
+        index++
+      }
+      
+      if (files.length >= rotation.maxFiles) {
+        const toDelete = files
+          .sort((a, b) => b.index - a.index)
+          .slice(rotation.maxFiles - 1)
+        
+        for (const file of toDelete) {
+          try {
+            fsModule.unlinkSync(file.path)
+          } catch {
+            // Ignore errors deleting old files
+          }
+        }
+      }
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+
   const rotateFile = async () => {
     if (!fsModule) return
     
@@ -153,6 +183,8 @@ export const fileTransport = (options: FileTransportOptions): Transport => {
       
       fsModule.renameSync(path, `${path}.${rotateIndex}`)
       currentSize = 0
+      
+      cleanupOldFiles()
       
       await initialize()
     } catch (error) {
