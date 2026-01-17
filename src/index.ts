@@ -80,6 +80,9 @@ export const transports = {
 
 export { consoleTransport, fileTransport, webhookTransport }
 
+export { expressLogger } from './middleware'
+export type { ExpressLoggerOptions } from './middleware'
+
 export { time, timeEnd } from './extended'
 export { count, countReset } from './extended'
 export { group, groupCollapsed, groupEnd } from './extended'

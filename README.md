@@ -73,6 +73,49 @@ authLog.success('Login successful')  // ✅ SUCCESS [auth] Login successful
 ✅ SUCCESS [database] Connected
 ```
 
+## Express Middleware
+
+Automatic request logging for Express apps:
+
+```typescript
+import express from 'express'
+import { expressLogger } from 'logfx/middleware'
+
+const app = express()
+
+app.use(expressLogger())
+
+app.get('/users', (req, res) => {
+  req.log.info('Fetching users')
+  res.json({ users: [] })
+})
+```
+
+**Output:**
+
+```
+💡 INFO [http] Incoming request { method: 'GET', path: '/users', requestId: 'abc123' }
+💡 INFO [http] Fetching users { requestId: 'abc123' }
+💡 INFO [http] Request completed { method: 'GET', path: '/users', status: 200, durationMs: 45 }
+```
+
+### Middleware Options
+
+```typescript
+app.use(expressLogger({
+  namespace: 'api',               // Custom namespace
+  skip: (req) => req.path === '/health',  // Skip health checks
+  includeHeader: true,           // Add X-Request-Id header (default: true)
+  headerName: 'X-Trace-Id',      // Custom header name
+  getId: (req) => req.headers['x-custom-id']  // Custom ID extractor
+}))
+```
+
+Each request gets:
+- `req.log` - scoped logger with requestId
+- `req.requestId` - unique request identifier
+- Automatic timing and status code logging
+
 ## Configuration
 
 ```typescript
