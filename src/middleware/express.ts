@@ -6,6 +6,8 @@ import { generateRequestId } from '../utils'
 export interface ExpressLoggerOptions extends Partial<LoggerOptions> {
   skip?: (req: Request) => boolean
   getId?: (req: Request) => string
+  includeHeader?: boolean
+  headerName?: string
 }
 
 declare global {
@@ -18,15 +20,19 @@ declare global {
 }
 
 export const expressLogger = (options: ExpressLoggerOptions = {}) => {
-  const { skip, getId, ...loggerOptions } = options
+  const { skip, getId, includeHeader = true, headerName = 'X-Request-Id', ...loggerOptions } = options
 
   return (req: Request, res: Response, next: NextFunction) => {
     if (skip && skip(req)) {
       return next()
     }
 
-    const requestId = getId ? getId(req) : generateRequestId()
+    const requestId = getId ? getId(req) : (req.headers['x-request-id'] as string) ?? generateRequestId()
     req.requestId = requestId
+
+    if (includeHeader) {
+      res.setHeader(headerName, requestId)
+    }
 
     req.log = createLogger({
       ...loggerOptions,
