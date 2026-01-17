@@ -49,16 +49,33 @@ export const expressLogger = (options: ExpressLoggerOptions = {}) => {
       ip: req.ip
     })
 
-    res.on('finish', () => {
+    const logCompletion = () => {
       const duration = Date.now() - startTime
       const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'
       
-      req.log[level]('Request completed', {
+      const data: Record<string, unknown> = {
         method: req.method,
         path: req.path,
         status: res.statusCode,
-        duration: `${duration}ms`
-      })
+        durationMs: duration
+      }
+
+      if (duration > 1000) {
+        data.slow = true
+      }
+
+      req.log[level]('Request completed', data)
+    }
+
+    res.on('finish', logCompletion)
+    res.on('close', () => {
+      if (!res.writableEnded) {
+        req.log.warn('Connection closed before response', {
+          method: req.method,
+          path: req.path,
+          durationMs: Date.now() - startTime
+        })
+      }
     })
 
     next()
