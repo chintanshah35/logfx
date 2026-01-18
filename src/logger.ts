@@ -70,6 +70,26 @@ const getDefaultFormat = (): 'pretty' | 'json' => {
   return isProduction() ? 'json' : 'pretty'
 }
 
+const getServiceContext = (): Record<string, unknown> | undefined => {
+  if (typeof process === 'undefined') return undefined
+  
+  const context: Record<string, unknown> = {}
+  
+  if (process.env.SERVICE_NAME) {
+    context.service = process.env.SERVICE_NAME
+  }
+  
+  if (process.env.SERVICE_VERSION) {
+    context.version = process.env.SERVICE_VERSION
+  }
+  
+  if (process.env.NODE_ENV) {
+    context.environment = process.env.NODE_ENV
+  }
+  
+  return Object.keys(context).length > 0 ? context : undefined
+}
+
 export const createLogger = (options: LoggerOptions = {}): Logger => {
   const config = {
     namespace: options.namespace as string | undefined,
