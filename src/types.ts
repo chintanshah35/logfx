@@ -80,6 +80,8 @@ export interface LoggerOptions {
   async?: boolean
   buffer?: BufferOptions
   requestId?: string
+  theme?: string
+  detectIssues?: boolean
 }
 
 export interface LogStyle {
