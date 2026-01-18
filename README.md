@@ -173,9 +173,9 @@ const log = createLogger({
 })
 ```
 
-### JSON Output
+### JSON Output for Production
 
-For production, use JSON format:
+Structured JSON output for log aggregation services:
 
 ```typescript
 const log = createLogger({
