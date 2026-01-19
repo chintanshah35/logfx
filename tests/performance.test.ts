@@ -22,7 +22,7 @@ describe('Performance metrics', () => {
 
   it('measures async operations', async () => {
     const log = createLogger()
-    const result = await log.measure('async-test', async () => {
+    const result = await log.measure(async () => {
       return 'done'
     })
     expect(result.result).toBe('done')
