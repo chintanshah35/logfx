@@ -41,8 +41,8 @@ export const fastifyLogger = (options: FastifyLoggerOptions = {}) => {
       const startTime = Date.now()
       
       logger.info('Incoming request', {
-        method: req.method,
-        url: req.url
+        method: req?.method ?? 'UNKNOWN',
+        url: req?.url ?? 'UNKNOWN'
       })
 
       res.addHook('onSend', async () => {
@@ -50,8 +50,8 @@ export const fastifyLogger = (options: FastifyLoggerOptions = {}) => {
         const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'
         
         logger[level]('Request completed', {
-          method: req.method,
-          url: req.url,
+          method: req?.method ?? 'UNKNOWN',
+          url: req?.url ?? 'UNKNOWN',
           status: res.statusCode,
           durationMs: duration
         })

@@ -39,8 +39,8 @@ export const withLogging = (
     const startTime = Date.now()
 
     reqWithLog.log.info('API request', {
-      method: req.method,
-      url: req.url
+      method: req?.method ?? 'UNKNOWN',
+      url: req?.url ?? 'UNKNOWN'
     })
 
     try {
@@ -50,8 +50,8 @@ export const withLogging = (
       const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'
       
       reqWithLog.log[level]('API complete', {
-        method: req.method,
-        url: req.url,
+        method: req?.method ?? 'UNKNOWN',
+        url: req?.url ?? 'UNKNOWN',
         status: res.statusCode,
         durationMs: duration
       })
