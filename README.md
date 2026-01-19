@@ -460,6 +460,14 @@ diff(before, after, label?)
 badge(text, color?)
 ```
 
+## 📚 Articles & Blog Posts
+
+Learn more about logfx:
+
+- **[logfx v0.5.0: From Dev Tool to Production Logger](https://dev.to/chintanshah35/logfx-v050-from-dev-tool-to-production-logger-55nl)** - Dev.to
+- **[Your console.log Deserves Better](https://dev.to/chintanshah35/your-consolelog-deserves-better-4ack)** - Dev.to
+- **[logfx: Beautiful Console Logging That Actually Makes Sense](https://chintanshah35.hashnode.dev/logfx-beautiful-console-logging-that-actually-makes-sense)** - Hashnode
+
 ## License
 
 MIT
