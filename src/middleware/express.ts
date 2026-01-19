@@ -1,28 +1,35 @@
-import type { Request, Response, NextFunction } from 'express'
 import { createLogger } from '../logger'
 import type { LoggerOptions, Logger } from '../types'
 import { generateRequestId } from '../utils'
 
-export interface ExpressLoggerOptions extends Partial<LoggerOptions> {
-  skip?: (req: Request) => boolean
-  getId?: (req: Request) => string
-  includeHeader?: boolean
-  headerName?: string
+export interface ExpressRequest {
+  method: string
+  path: string
+  query: Record<string, unknown>
+  ip: string
+  headers: Record<string, string | string[] | undefined>
+  log?: Logger
+  requestId?: string
 }
 
-declare global {
-  namespace Express {
-    interface Request {
-      log: Logger
-      requestId: string
-    }
-  }
+export interface ExpressResponse {
+  statusCode: number
+  writableEnded: boolean
+  setHeader: (name: string, value: string) => void
+  on: (event: string, handler: () => void) => void
+}
+
+export interface ExpressLoggerOptions extends Partial<LoggerOptions> {
+  skip?: (req: ExpressRequest) => boolean
+  getId?: (req: ExpressRequest) => string
+  includeHeader?: boolean
+  headerName?: string
 }
 
 export const expressLogger = (options: ExpressLoggerOptions = {}) => {
   const { skip, getId, includeHeader = true, headerName = 'X-Request-Id', ...loggerOptions } = options
 
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: ExpressRequest, res: ExpressResponse, next: () => void) => {
     if (skip && skip(req)) {
       return next()
     }
@@ -64,13 +71,13 @@ export const expressLogger = (options: ExpressLoggerOptions = {}) => {
         data.slow = true
       }
 
-      req.log[level]('Request completed', data)
+      req.log?.[level]('Request completed', data)
     }
 
     res.on('finish', logCompletion)
     res.on('close', () => {
       if (!res.writableEnded) {
-        req.log.warn('Connection closed before response', {
+        req.log?.warn('Connection closed before response', {
           method: req.method,
           path: req.path,
           durationMs: Date.now() - startTime

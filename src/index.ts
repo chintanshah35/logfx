@@ -15,7 +15,8 @@ import type {
   WebhookTransportOptions,
   RedactOptions,
   SamplingOptions,
-  BufferOptions
+  BufferOptions,
+  RotationOptions
 } from './types'
 
 const defaultLogger = createLogger()

@@ -1,20 +1,30 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
 import { createLogger } from '../logger'
-import type { LoggerOptions } from '../types'
+import type { LoggerOptions, Logger } from '../types'
 import { generateRequestId } from '../utils'
 
 export interface NextLoggerOptions extends Partial<LoggerOptions> {}
 
+export interface NextApiRequest {
+  method?: string
+  url?: string
+  headers: Record<string, string | string[] | undefined>
+}
+
+export interface NextApiResponse {
+  statusCode: number
+  setHeader: (name: string, value: string) => void
+}
+
 export interface NextApiRequestWithLog extends NextApiRequest {
-  log: ReturnType<typeof createLogger>
+  log: Logger
   requestId: string
 }
 
-export const withLogging = <T = any>(
-  handler: (req: NextApiRequestWithLog, res: NextApiResponse<T>) => Promise<void> | void,
+export const withLogging = (
+  handler: (req: NextApiRequestWithLog, res: NextApiResponse) => Promise<void> | void,
   options: NextLoggerOptions = {}
 ) => {
-  return async (req: NextApiRequest, res: NextApiResponse<T>) => {
+  return async (req: NextApiRequest, res: NextApiResponse) => {
     const requestId = (req.headers['x-request-id'] as string) ?? generateRequestId()
     const reqWithLog = req as NextApiRequestWithLog
     reqWithLog.requestId = requestId
