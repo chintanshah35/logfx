@@ -14,12 +14,15 @@
 - **Colorful output** with emoji prefixes
 - **Namespaces** to organize logs by module
 - **Log levels** — `debug`, `info`, `success`, `warn`, `error`
+- **Color themes** — dracula, monokai, or custom
+- **Issue detection** — warns about undefined values and passwords in logs
 - **Auto-silencing** — debug logs hidden in production
 - **Timestamps** — optional time display
 - **Context** — attach metadata to all logs
 - **Field redaction** — hide sensitive data automatically
 - **Log sampling** — reduce log volume in production
 - **Async logging** — buffer and batch logs for performance
+- **Framework middleware** — Express and Fastify support
 - **Universal** — works in Node.js and browsers
 - **Tiny** — zero dependencies, ~3KB gzipped
 - **TypeScript** — full type support
@@ -116,6 +119,49 @@ Each request gets:
 - `req.requestId` - unique request identifier
 - Automatic timing and status code logging
 
+## Fastify Plugin
+
+```typescript
+import Fastify from 'fastify'
+import { fastifyLogger } from 'logfx/middleware'
+
+const app = Fastify()
+app.register(fastifyLogger())
+
+app.get('/users', async (request, reply) => {
+  request.log.info('Fetching users')
+  return { users: [] }
+})
+```
+
+## Color Themes
+
+Choose from built-in themes or use the default:
+
+```typescript
+const log = createLogger({ theme: 'dracula' })
+// or
+const log = createLogger({ theme: 'monokai' })
+```
+
+Available themes: `default`, `dracula`, `monokai`
+
+## Issue Detection
+
+Catch common logging mistakes in development:
+
+```typescript
+const log = createLogger({ detectIssues: true })
+
+log.info('User data', { user: undefined })
+// ⚠️ Warning: undefined value detected in log data
+
+log.info('Login', { password: 'secret123' })
+// ⚠️ Warning: potential password in log data
+```
+
+Helps catch bugs before they reach production. Disabled by default.
+
 ## Configuration
 
 ```typescript
@@ -136,6 +182,8 @@ const log = createLogger({
 | `timestamp` | `boolean` | `false` | Show timestamps |
 | `enabled` | `boolean` | `true` | Enable/disable logging |
 | `format` | `'pretty' \| 'json'` | auto | Output format (auto-detects based on NODE_ENV) |
+| `theme` | `'default' \| 'dracula' \| 'monokai'` | `'default'` | Color theme |
+| `detectIssues` | `boolean` | `false` | Warn about undefined values and passwords |
 | `transports` | `Transport[]` | - | Custom transports |
 | `context` | `object` | - | Metadata added to all logs |
 | `redact` | `RedactOptions` | - | Field redaction config |
