@@ -33,7 +33,7 @@ const formatPlainText = (entry: LogEntry): string => {
     line += ' ' + safeStringify(entry.data)
   }
   if (entry.error) {
-    line += '\n' + (entry.error.stack || entry.error.message)
+    line += '\n' + (entry.error?.stack || entry.error?.message || 'Unknown error')
   }
   
   return line
@@ -84,9 +84,9 @@ export const fileTransport = (options: FileTransportOptions): Transport => {
       writeStream = fsModule.createWriteStream(path, { flags: 'a' })
       
       writeStream.on('error', (error: Error) => {
-        safeConsole.error(`[logfx:file] Write error for ${path}:`, error.message)
+        safeConsole.error(`[logfx:file] Write error for ${path}:`, getErrorMessage(error))
         writeStream = null
-        initializationError = error
+        initializationError = error instanceof Error ? error : new Error(String(error))
       })
       
       // Write any pending writes
