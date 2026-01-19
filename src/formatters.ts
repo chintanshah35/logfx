@@ -2,10 +2,6 @@ import type { LogLevel, LoggerOptions, LogEntry } from './types'
 import { styles, ansiColors } from './styles'
 import { safeStringify } from './json'
 
-/**
- * Check if colors should be disabled
- * Respects NO_COLOR env var and CI environment detection
- */
 const shouldDisableColors = (): boolean => {
   // Check NO_COLOR environment variable (standard)
   if (typeof process !== 'undefined' && process.env?.NO_COLOR) {
@@ -100,10 +96,6 @@ export const formatBrowser = (
   }
 }
 
-/**
- * Format log output for Node.js terminal
- * Handles CI/CD environments by disabling colors when appropriate
- */
 export const formatNode = (
   level: LogLevel,
   options: LoggerOptions,
@@ -162,9 +154,6 @@ export const formatNode = (
   return [parts.join(' '), ...formattedArgs]
 }
 
-/**
- * Get the appropriate console method for a log level
- */
 export const getConsoleMethod = (level: LogLevel): 'log' | 'warn' | 'error' | 'debug' | 'info' => {
   switch (level) {
     case 'error':
@@ -209,13 +198,6 @@ const serializeError = (error: Error): Record<string, unknown> => {
 }
 
 
-/**
- * Format a log entry as JSON string
- * 
- * Edge cases handled:
- * - Circular references (returns '[Circular]' instead of crashing)
- * - Metadata key conflicts (custom data is nested under 'data' key)
- */
 export const formatJson = (entry: LogEntry): string => {
   const output: Record<string, unknown> = {
     timestamp: entry.timestamp.toISOString(),
