@@ -84,6 +84,12 @@ export { consoleTransport, fileTransport, webhookTransport }
 export { expressLogger } from './middleware'
 export type { ExpressLoggerOptions } from './middleware'
 
+export { fastifyLogger } from './middleware'
+export type { FastifyLoggerOptions } from './middleware'
+
+export { withLogging } from './middleware'
+export type { NextLoggerOptions, NextApiRequestWithLog } from './middleware'
+
 export { time, timeEnd } from './extended'
 export { count, countReset } from './extended'
 export { group, groupCollapsed, groupEnd } from './extended'
