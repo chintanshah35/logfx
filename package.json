@@ -1,66 +1,15 @@
 {
-  "name": "logfx",
-  "version": "0.5.0",
-  "description": "Tiny, pretty logging for JS. Colors, emojis, namespaces. Zero deps.",
-  "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
-      }
-    }
-  },
-  "files": [
-    "dist"
-  ],
+  "name": "logfx-monorepo",
+  "private": true,
+  "description": "logfx monorepo - Production-ready logging for JavaScript",
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "lint": "eslint src --ext .ts",
-    "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build",
-    "demo": "npx tsx demo.ts"
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "test:run": "pnpm -r test:run",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r exec rm -rf dist node_modules"
   },
-  "keywords": [
-    "console",
-    "log",
-    "logger",
-    "logging",
-    "debug",
-    "pretty",
-    "colorful",
-    "emoji",
-    "browser",
-    "node",
-    "typescript",
-    "terminal",
-    "cli",
-    "fx",
-    "effects",
-    "express",
-    "middleware",
-    "request-id"
-  ],
-  "author": "",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/chintanshah35/logfx.git"
-  },
-  "bugs": {
-    "url": "https://github.com/chintanshah35/logfx/issues"
-  },
-  "homepage": "https://github.com/chintanshah35/logfx#readme",
   "devDependencies": {
     "@types/node": "^20.19.27",
     "tsup": "^8.0.1",
@@ -69,5 +18,6 @@
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "packageManager": "pnpm@9.0.0"
 }
