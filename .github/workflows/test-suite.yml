@@ -19,17 +19,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install
 
       - name: Run unit and integration tests
-        run: npx vitest run tests/index.test.ts tests/transports.test.ts
+        run: pnpm --filter logfx test:run -- tests/index.test.ts tests/transports.test.ts
 
   e2e-tests:
     name: E2E Tests
@@ -39,17 +44,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install
 
       - name: Run E2E tests
-        run: npx vitest run tests/e2e.test.ts
+        run: pnpm --filter logfx test:run -- tests/e2e.test.ts
 
   performance:
     name: Performance Benchmarks
@@ -59,17 +69,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install
 
       - name: Run performance tests
-        run: npx vitest run tests/performance.test.ts
+        run: pnpm --filter logfx test:run -- tests/performance.test.ts
 
   build:
     name: Build & Typecheck
@@ -80,23 +95,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install
 
       - name: Type check
-        run: npm run typecheck
+        run: pnpm --filter logfx typecheck
 
       - name: Build
-        run: npm run build
+        run: pnpm build
 
       - name: Check bundle size
         run: |
           echo "Bundle sizes:"
-          ls -lh dist/
-
+          ls -lh packages/logfx/dist/
