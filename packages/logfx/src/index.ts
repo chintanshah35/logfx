@@ -16,7 +16,8 @@ import type {
   RedactOptions,
   SamplingOptions,
   BufferOptions,
-  RotationOptions
+  RotationOptions,
+  RetryOptions
 } from './types'
 
 const defaultLogger = createLogger()
@@ -142,7 +143,8 @@ export type {
   RedactOptions,
   SamplingOptions,
   BufferOptions,
-  RotationOptions
+  RotationOptions,
+  RetryOptions
 }
 
 export default log
