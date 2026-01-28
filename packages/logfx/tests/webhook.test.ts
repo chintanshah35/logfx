@@ -5,15 +5,21 @@ import type { LogEntry } from '../src/types'
 describe('Webhook Transport', () => {
   let fetchMock: ReturnType<typeof vi.fn>
   let originalFetch: typeof global.fetch
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     originalFetch = global.fetch
     fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 })
     global.fetch = fetchMock
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
   afterEach(() => {
     global.fetch = originalFetch
+    consoleWarnSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
     vi.clearAllMocks()
   })
 
@@ -334,6 +340,135 @@ describe('Webhook Transport', () => {
       expect(fetchMock).toHaveBeenCalledTimes(1)
       const body = JSON.parse(fetchMock.mock.calls[0][1].body)
       expect(body.length).toBe(2)
+    })
+  })
+
+  describe('retry logic', () => {
+    it('retries on 503 status with exponential backoff', async () => {
+      vi.useFakeTimers()
+      
+      fetchMock
+        .mockResolvedValueOnce({ ok: false, status: 503, statusText: 'Service Unavailable' })
+        .mockResolvedValueOnce({ ok: false, status: 503, statusText: 'Service Unavailable' })
+        .mockResolvedValueOnce({ ok: true, status: 200 })
+
+      const log = createLogger({
+        transports: [transports.webhook({ 
+          url: 'https://api.example.com/logs',
+          batchSize: 1,
+          retry: {
+            maxRetries: 3,
+            initialDelay: 1000,
+            backoff: 'exponential'
+          }
+        })]
+      })
+
+      log.info('test')
+      
+      await vi.advanceTimersByTimeAsync(50)
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      
+      await vi.advanceTimersByTimeAsync(2000)
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+      
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(2)
+      
+      vi.useRealTimers()
+    })
+
+    it('stops retrying after maxRetries', async () => {
+      vi.useFakeTimers()
+      
+      fetchMock.mockResolvedValue({ ok: false, status: 503, statusText: 'Service Unavailable' })
+
+      const log = createLogger({
+        transports: [transports.webhook({ 
+          url: 'https://api.example.com/logs',
+          batchSize: 1,
+          retry: {
+            maxRetries: 2,
+            initialDelay: 100
+          }
+        })]
+      })
+
+      log.info('test')
+      
+      await vi.advanceTimersByTimeAsync(50)
+      await vi.advanceTimersByTimeAsync(100)
+      await vi.advanceTimersByTimeAsync(200)
+      await vi.advanceTimersByTimeAsync(400)
+      
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+      expect(consoleErrorSpy).toHaveBeenCalled()
+      
+      vi.useRealTimers()
+    })
+
+    it('uses linear backoff strategy', async () => {
+      vi.useFakeTimers()
+      
+      fetchMock
+        .mockResolvedValueOnce({ ok: false, status: 500 })
+        .mockResolvedValueOnce({ ok: false, status: 500 })
+        .mockResolvedValueOnce({ ok: true, status: 200 })
+
+      const log = createLogger({
+        transports: [transports.webhook({ 
+          url: 'https://api.example.com/logs',
+          batchSize: 1,
+          retry: {
+            maxRetries: 3,
+            initialDelay: 1000,
+            backoff: 'linear'
+          }
+        })]
+      })
+
+      log.info('test')
+      
+      await vi.advanceTimersByTimeAsync(50)
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      
+      await vi.advanceTimersByTimeAsync(2000)
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+      
+      vi.useRealTimers()
+    })
+
+    it('respects maxDelay cap', async () => {
+      vi.useFakeTimers()
+      
+      fetchMock
+        .mockResolvedValueOnce({ ok: false, status: 503 })
+        .mockResolvedValueOnce({ ok: true, status: 200 })
+
+      const log = createLogger({
+        transports: [transports.webhook({ 
+          url: 'https://api.example.com/logs',
+          batchSize: 1,
+          retry: {
+            maxRetries: 5,
+            initialDelay: 10000,
+            maxDelay: 5000,
+            backoff: 'exponential'
+          }
+        })]
+      })
+
+      log.info('test')
+      
+      await vi.advanceTimersByTimeAsync(50)
+      await vi.advanceTimersByTimeAsync(5000)
+      
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      
+      vi.useRealTimers()
     })
   })
 })
