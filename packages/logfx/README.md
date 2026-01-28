@@ -263,11 +263,22 @@ transports.webhook({
   batchSize: 10,  // default: 10 logs per batch
   flushInterval: 5000,  // default: 5 seconds
   maxBufferSize: 100,  // default: 10x batchSize, drops oldest when full
-  timeout: 30000  // default: 30 seconds
+  timeout: 30000,  // default: 30 seconds
+  
+  // Retry configuration
+  retry: {
+    maxRetries: 3,  // default: 3
+    initialDelay: 1000,  // default: 1s
+    maxDelay: 30000,  // default: 30s
+    backoff: 'exponential',  // default: 'exponential', or 'linear', 'fixed'
+    retryOn: [500, 502, 503, 504, 'ECONNRESET', 'ETIMEDOUT']  // default
+  }
 })
 ```
 
-Batches are sent automatically when full or on the flush interval. Oldest logs are dropped if the buffer exceeds maxBufferSize.
+**Batching:** Logs are sent automatically when the batch is full or on the flush interval. Oldest logs are dropped if the buffer exceeds maxBufferSize.
+
+**Retry Logic:** Failed requests are automatically retried with exponential backoff. Retries occur on network errors and 5xx status codes by default.
 
 ## Context
 
