@@ -37,6 +37,14 @@ export interface FileTransportOptions {
   rotation?: RotationOptions
 }
 
+export interface RetryOptions {
+  maxRetries?: number
+  initialDelay?: number
+  maxDelay?: number
+  backoff?: 'exponential' | 'linear' | 'fixed'
+  retryOn?: (number | string)[]
+}
+
 export interface WebhookTransportOptions {
   url: string
   headers?: Record<string, string>
@@ -45,6 +53,7 @@ export interface WebhookTransportOptions {
   flushInterval?: number
   maxBufferSize?: number
   timeout?: number
+  retry?: RetryOptions
 }
 
 export interface RedactOptions {
