@@ -17,7 +17,9 @@ import type {
   SamplingOptions,
   BufferOptions,
   RotationOptions,
-  RetryOptions
+  RetryOptions,
+  CircuitBreakerOptions,
+  DeadLetterQueueOptions
 } from './types'
 
 const defaultLogger = createLogger()
@@ -144,7 +146,9 @@ export type {
   SamplingOptions,
   BufferOptions,
   RotationOptions,
-  RetryOptions
+  RetryOptions,
+  CircuitBreakerOptions,
+  DeadLetterQueueOptions
 }
 
 export default log

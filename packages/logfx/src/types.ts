@@ -45,6 +45,20 @@ export interface RetryOptions {
   retryOn?: (number | string)[]
 }
 
+export interface CircuitBreakerOptions {
+  enabled?: boolean
+  threshold?: number
+  timeout?: number
+  halfOpenRequests?: number
+}
+
+export interface DeadLetterQueueOptions {
+  enabled?: boolean
+  maxSize?: number
+  onFull?: 'drop-oldest' | 'drop-newest'
+  persist?: string
+}
+
 export interface WebhookTransportOptions {
   url: string
   headers?: Record<string, string>
@@ -54,6 +68,8 @@ export interface WebhookTransportOptions {
   maxBufferSize?: number
   timeout?: number
   retry?: RetryOptions
+  circuitBreaker?: CircuitBreakerOptions
+  dlq?: DeadLetterQueueOptions
 }
 
 export interface RedactOptions {
