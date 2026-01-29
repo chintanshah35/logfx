@@ -10,7 +10,9 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
     method = 'POST',
     batchSize = 10,
     flushInterval = 5000,
-    retry
+    retry,
+    circuitBreaker,
+    dlq
   } = options
 
   const maxBufferSize = options.maxBufferSize ?? (batchSize * 10)
@@ -24,9 +26,30 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
     retryOn: retry?.retryOn ?? [500, 502, 503, 504, 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND']
   }
 
+  const cbConfig = {
+    enabled: circuitBreaker?.enabled ?? false,
+    threshold: circuitBreaker?.threshold ?? 5,
+    timeout: circuitBreaker?.timeout ?? 30000,
+    halfOpenRequests: circuitBreaker?.halfOpenRequests ?? 1
+  }
+
+  const dlqConfig = {
+    enabled: dlq?.enabled ?? false,
+    maxSize: dlq?.maxSize ?? 1000,
+    onFull: dlq?.onFull ?? 'drop-oldest' as const,
+    persist: dlq?.persist
+  }
+
   let buffer: LogEntry[] = []
   let flushTimer: ReturnType<typeof setTimeout> | null = null
   let isFlushing = false
+
+  let circuitState: 'closed' | 'open' | 'half-open' = 'closed'
+  let failureCount = 0
+  let circuitOpenTime: number | null = null
+  let halfOpenAttempts = 0
+
+  let deadLetterQueue: LogEntry[] = []
 
   const shouldRetry = (error: unknown, statusCode?: number): boolean => {
     if (statusCode && retryConfig.retryOn.includes(statusCode)) {
@@ -66,10 +89,93 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
+  const checkCircuitState = (): boolean => {
+    if (!cbConfig.enabled) return true
+    
+    if (circuitState === 'open') {
+      if (circuitOpenTime && Date.now() - circuitOpenTime >= cbConfig.timeout) {
+        safeConsole.info('[logfx:webhook] Circuit breaker entering half-open state')
+        circuitState = 'half-open'
+        halfOpenAttempts = 0
+        return true
+      }
+      return false
+    }
+    
+    if (circuitState === 'half-open') {
+      return halfOpenAttempts < cbConfig.halfOpenRequests
+    }
+    
+    return true
+  }
+
+  const recordSuccess = () => {
+    if (!cbConfig.enabled) return
+    
+    if (circuitState === 'half-open') {
+      safeConsole.info('[logfx:webhook] Circuit breaker closing after successful request')
+      circuitState = 'closed'
+      failureCount = 0
+      halfOpenAttempts = 0
+      circuitOpenTime = null
+    } else if (circuitState === 'closed') {
+      failureCount = 0
+    }
+  }
+
+  const recordFailure = () => {
+    if (!cbConfig.enabled) return
+    
+    if (circuitState === 'half-open') {
+      safeConsole.warn('[logfx:webhook] Circuit breaker re-opening after failed request')
+      circuitState = 'open'
+      circuitOpenTime = Date.now()
+      halfOpenAttempts = 0
+      return
+    }
+    
+    if (circuitState === 'closed') {
+      failureCount++
+      if (failureCount >= cbConfig.threshold) {
+        safeConsole.error(`[logfx:webhook] Circuit breaker opened after ${failureCount} failures`)
+        circuitState = 'open'
+        circuitOpenTime = Date.now()
+      }
+    }
+  }
+
+  const addToDeadLetterQueue = (entries: LogEntry[]) => {
+    if (!dlqConfig.enabled) return
+    
+    for (const entry of entries) {
+      if (deadLetterQueue.length >= dlqConfig.maxSize) {
+        if (dlqConfig.onFull === 'drop-oldest') {
+          deadLetterQueue.shift()
+        } else {
+          continue
+        }
+      }
+      deadLetterQueue.push(entry)
+    }
+    
+    safeConsole.warn(`[logfx:webhook] Added ${entries.length} logs to dead letter queue (${deadLetterQueue.length}/${dlqConfig.maxSize})`)
+  }
+
   const sendLogs = async (entries: LogEntry[]) => {
     if (entries.length === 0) return
 
+    if (!checkCircuitState()) {
+      safeConsole.warn('[logfx:webhook] Circuit breaker is open, adding logs to dead letter queue')
+      addToDeadLetterQueue(entries)
+      return
+    }
+
+    if (circuitState === 'half-open') {
+      halfOpenAttempts++
+    }
+
     const body = JSON.stringify(entries.map(entry => JSON.parse(formatJson(entry))))
+    let finalError: unknown = null
 
     for (let attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {
       const controller = new AbortController()
@@ -94,8 +200,13 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
           }
           
           safeConsole.error(`[logfx:webhook] HTTP ${response.status} ${response.statusText} for ${url}`)
+          finalError = new Error(`HTTP ${response.status}`)
+          recordFailure()
+          addToDeadLetterQueue(entries)
+          return
         }
         
+        recordSuccess()
         return
       } catch (error) {
         clearTimeout(timeoutId)
@@ -116,6 +227,9 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
           safeConsole.error('[logfx:webhook] Failed to send logs:', getErrorMessage(error))
         }
         
+        finalError = error
+        recordFailure()
+        addToDeadLetterQueue(entries)
         return
       }
     }
