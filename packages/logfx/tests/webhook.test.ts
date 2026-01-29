@@ -471,4 +471,148 @@ describe('Webhook Transport', () => {
       vi.useRealTimers()
     })
   })
+
+  describe('circuit breaker', () => {
+    it('opens circuit after threshold failures', async () => {
+      vi.useFakeTimers()
+      
+      fetchMock.mockResolvedValue({ ok: false, status: 500 })
+
+      const log = createLogger({
+        transports: [transports.webhook({ 
+          url: 'https://api.example.com/logs',
+          batchSize: 1,
+          retry: { maxRetries: 0 },
+          circuitBreaker: {
+            enabled: true,
+            threshold: 3,
+            timeout: 10000
+          }
+        })]
+      })
+
+      log.info('test1')
+      await vi.advanceTimersByTimeAsync(50)
+      
+      log.info('test2')
+      await vi.advanceTimersByTimeAsync(50)
+      
+      log.info('test3')
+      await vi.advanceTimersByTimeAsync(50)
+      
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Circuit breaker opened')
+      )
+      
+      log.info('test4')
+      await vi.advanceTimersByTimeAsync(50)
+      
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Circuit breaker is open')
+      )
+      
+      vi.useRealTimers()
+    })
+
+    it('transitions to half-open after timeout', async () => {
+      vi.useFakeTimers()
+      
+      fetchMock
+        .mockResolvedValueOnce({ ok: false, status: 500 })
+        .mockResolvedValueOnce({ ok: false, status: 500 })
+        .mockResolvedValueOnce({ ok: false, status: 500 })
+        .mockResolvedValueOnce({ ok: true, status: 200 })
+
+      const log = createLogger({
+        transports: [transports.webhook({ 
+          url: 'https://api.example.com/logs',
+          batchSize: 1,
+          retry: { maxRetries: 0 },
+          circuitBreaker: {
+            enabled: true,
+            threshold: 3,
+            timeout: 5000
+          }
+        })]
+      })
+
+      log.info('fail1')
+      log.info('fail2')
+      log.info('fail3')
+      await vi.advanceTimersByTimeAsync(150)
+      
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+      
+      await vi.advanceTimersByTimeAsync(5000)
+      
+      log.info('success')
+      await vi.advanceTimersByTimeAsync(50)
+      
+      expect(fetchMock).toHaveBeenCalledTimes(4)
+      
+      vi.useRealTimers()
+    })
+  })
+
+  describe('dead letter queue', () => {
+    it('stores failed logs in DLQ', async () => {
+      vi.useFakeTimers()
+      
+      fetchMock.mockResolvedValue({ ok: false, status: 500 })
+
+      const log = createLogger({
+        transports: [transports.webhook({ 
+          url: 'https://api.example.com/logs',
+          batchSize: 1,
+          retry: { maxRetries: 0 },
+          dlq: {
+            enabled: true,
+            maxSize: 10
+          }
+        })]
+      })
+
+      log.info('test1')
+      log.info('test2')
+      await vi.advanceTimersByTimeAsync(100)
+      
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Added 1 logs to dead letter queue')
+      )
+      
+      vi.useRealTimers()
+    })
+
+    it('respects DLQ maxSize with drop-oldest strategy', async () => {
+      vi.useFakeTimers()
+      
+      fetchMock.mockResolvedValue({ ok: false, status: 500 })
+
+      const log = createLogger({
+        transports: [transports.webhook({ 
+          url: 'https://api.example.com/logs',
+          batchSize: 1,
+          retry: { maxRetries: 0 },
+          dlq: {
+            enabled: true,
+            maxSize: 2,
+            onFull: 'drop-oldest'
+          }
+        })]
+      })
+
+      log.info('test1')
+      log.info('test2')
+      log.info('test3')
+      await vi.advanceTimersByTimeAsync(150)
+      
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('(2/2)')
+      )
+      
+      vi.useRealTimers()
+    })
+  })
 })
