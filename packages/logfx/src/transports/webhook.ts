@@ -3,6 +3,13 @@ import { formatJson } from '../formatters'
 import { safeConsole } from '../console'
 import { getErrorMessage } from '../utils'
 
+let fs: typeof import('fs') | null = null
+try {
+  fs = await import('fs')
+} catch {
+  // Browser environment
+}
+
 export const webhookTransport = (options: WebhookTransportOptions): Transport => {
   const { 
     url, 
@@ -159,7 +166,32 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
     }
     
     safeConsole.warn(`[logfx:webhook] Added ${entries.length} logs to dead letter queue (${deadLetterQueue.length}/${dlqConfig.maxSize})`)
+    
+    if (dlqConfig.persist && fs) {
+      try {
+        const data = JSON.stringify(deadLetterQueue, null, 2)
+        fs.writeFileSync(dlqConfig.persist, data, 'utf-8')
+      } catch (error) {
+        safeConsole.error('[logfx:webhook] Failed to persist DLQ:', getErrorMessage(error))
+      }
+    }
   }
+
+  const loadDeadLetterQueue = () => {
+    if (!dlqConfig.enabled || !dlqConfig.persist || !fs) return
+    
+    try {
+      if (fs.existsSync(dlqConfig.persist)) {
+        const data = fs.readFileSync(dlqConfig.persist, 'utf-8')
+        deadLetterQueue = JSON.parse(data)
+        safeConsole.info(`[logfx:webhook] Loaded ${deadLetterQueue.length} logs from DLQ`)
+      }
+    } catch (error) {
+      safeConsole.error('[logfx:webhook] Failed to load DLQ:', getErrorMessage(error))
+    }
+  }
+
+  loadDeadLetterQueue()
 
   const sendLogs = async (entries: LogEntry[]) => {
     if (entries.length === 0) return
