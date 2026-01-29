@@ -68,6 +68,54 @@ retry: {
 }
 ```
 
+### Circuit Breaker
+
+Prevent cascading failures by stopping requests to failing endpoints:
+
+```typescript
+transports.webhook({
+  url: 'https://logs.example.com',
+  circuitBreaker: {
+    enabled: true,
+    threshold: 5,           // Open after 5 consecutive failures
+    timeout: 30000,         // Stay open for 30s
+    halfOpenRequests: 1     // Allow 1 test request in half-open state
+  }
+})
+```
+
+**States:**
+- **Closed**: Normal operation, all requests go through
+- **Open**: After threshold failures, all requests are blocked
+- **Half-Open**: After timeout, allows test requests to check if service recovered
+
+### Dead Letter Queue (DLQ)
+
+Store failed logs for later processing:
+
+```typescript
+transports.webhook({
+  url: 'https://logs.example.com',
+  dlq: {
+    enabled: true,
+    maxSize: 1000,              // Store up to 1000 failed logs
+    onFull: 'drop-oldest',      // or 'drop-newest'
+    persist: './logs/dlq.json'  // Optional: save to disk
+  }
+})
+```
+
+Failed logs are stored in memory (and optionally persisted to disk) when:
+- Circuit breaker is open
+- All retry attempts are exhausted
+- Network is unreachable
+
+**Use Cases:**
+- Temporary network outages
+- Service maintenance windows
+- Rate limiting
+- Debugging failed deliveries
+
 ## File Transport
 
 Write logs to files with rotation and compression.
