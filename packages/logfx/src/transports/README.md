@@ -116,6 +116,33 @@ Failed logs are stored in memory (and optionally persisted to disk) when:
 - Rate limiting
 - Debugging failed deliveries
 
+### Multi-Region Failover
+
+Send logs to multiple endpoints with automatic failover:
+
+```typescript
+transports.webhook({
+  urls: [
+    'https://us-east.logs.example.com',
+    'https://us-west.logs.example.com',
+    'https://eu.logs.example.com'
+  ],
+  failover: {
+    strategy: 'round-robin',  // or 'priority', 'latency'
+    healthCheck: true,
+    healthInterval: 30000     // Check health every 30s
+  }
+})
+```
+
+**Strategies:**
+- **round-robin**: Distribute requests evenly across all endpoints
+- **priority**: Use first healthy endpoint (fallback to next if unhealthy)
+- **latency**: Route to fastest endpoint (future enhancement)
+
+**Health Checks:**
+When enabled, periodically sends HEAD requests to check endpoint availability.
+
 ## File Transport
 
 Write logs to files with rotation and compression.
