@@ -30,6 +30,11 @@ export const beaconTransport = (options: BeaconTransportOptions): Transport => {
     const payload = JSON.stringify(entries.map(entry => JSON.parse(formatJson(entry))))
 
     if (payload.length > maxPayloadSize) {
+      if (entries.length === 1) {
+        safeConsole.error(`[logfx:beacon] Single log entry exceeds ${maxPayloadSize} bytes, dropping`)
+        return
+      }
+      
       safeConsole.warn(`[logfx:beacon] Payload size ${payload.length} exceeds limit ${maxPayloadSize}, splitting`)
       const half = Math.floor(entries.length / 2)
       sendBeacon(entries.slice(0, half))
