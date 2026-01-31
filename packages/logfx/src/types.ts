@@ -49,13 +49,13 @@ export interface CircuitBreakerOptions {
   enabled?: boolean
   threshold?: number
   timeout?: number
-  halfOpenRequests?: number
+  halfOpenMaxCalls?: number
 }
 
 export interface DeadLetterQueueOptions {
   enabled?: boolean
   maxSize?: number
-  onFull?: 'drop-oldest' | 'drop-newest'
+  overflow?: 'drop-oldest' | 'drop-newest'
   persist?: string
 }
 
