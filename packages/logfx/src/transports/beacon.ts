@@ -82,9 +82,9 @@ export const beaconTransport = (options: BeaconTransportOptions): Transport => {
 
   if (isBrowser) {
     if (events.beforeunload) {
-      window.addEventListener('beforeunload', () => {
+      window.addEventListener('beforeunload', (event) => {
         flushBuffer()
-      })
+      }, { capture: true })
     }
 
     if (events.visibilitychange) {
@@ -92,14 +92,22 @@ export const beaconTransport = (options: BeaconTransportOptions): Transport => {
         if (document.visibilityState === 'hidden') {
           flushBuffer()
         }
-      })
+      }, { capture: true })
     }
 
     if (events.pagehide) {
-      window.addEventListener('pagehide', () => {
+      window.addEventListener('pagehide', (event) => {
+        if (event.persisted) {
+          safeConsole.info('[logfx:beacon] Page entering bfcache, flushing logs')
+        }
         flushBuffer()
-      })
+      }, { capture: true })
     }
+
+    window.addEventListener('freeze', () => {
+      safeConsole.info('[logfx:beacon] Page frozen, flushing logs')
+      flushBuffer()
+    }, { capture: true })
   }
 
   return {
