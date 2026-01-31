@@ -59,8 +59,19 @@ export interface DeadLetterQueueOptions {
   persist?: string
 }
 
+export interface BeaconTransportOptions {
+  url: string
+  maxPayloadSize?: number
+  events?: {
+    beforeunload?: boolean
+    visibilitychange?: boolean
+    pagehide?: boolean
+  }
+}
+
 export interface WebhookTransportOptions {
   url: string
+  urls?: string[]
   headers?: Record<string, string>
   method?: 'POST' | 'PUT'
   batchSize?: number
@@ -70,6 +81,11 @@ export interface WebhookTransportOptions {
   retry?: RetryOptions
   circuitBreaker?: CircuitBreakerOptions
   dlq?: DeadLetterQueueOptions
+  failover?: {
+    strategy?: 'round-robin' | 'priority' | 'latency'
+    healthCheck?: boolean
+    healthInterval?: number
+  }
 }
 
 export interface RedactOptions {
