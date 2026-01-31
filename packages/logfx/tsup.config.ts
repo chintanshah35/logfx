@@ -10,5 +10,10 @@ export default defineConfig({
   treeshake: true,
   splitting: false,
   outDir: 'dist',
+  platform: 'neutral',
+  target: ['es2020', 'node18'],
+  esbuildOptions(options) {
+    options.conditions = ['browser', 'module', 'import']
+  }
 })
 
