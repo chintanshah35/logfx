@@ -75,15 +75,16 @@ export const logger = (namespace: string, options?: Partial<LoggerOptions>): Log
   return createLogger({ ...options, namespace })
 }
 
-import { consoleTransport, fileTransport, webhookTransport } from './transports'
+import { consoleTransport, fileTransport, webhookTransport, beaconTransport } from './transports'
 
 export const transports = {
   console: consoleTransport,
   file: fileTransport,
   webhook: webhookTransport,
+  beacon: beaconTransport,
 }
 
-export { consoleTransport, fileTransport, webhookTransport }
+export { consoleTransport, fileTransport, webhookTransport, beaconTransport }
 
 export { expressLogger } from './middleware'
 export type { ExpressLoggerOptions } from './middleware'
