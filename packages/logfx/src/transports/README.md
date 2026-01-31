@@ -79,7 +79,7 @@ transports.webhook({
     enabled: true,
     threshold: 5,           // Open after 5 consecutive failures
     timeout: 30000,         // Stay open for 30s
-    halfOpenRequests: 1     // Allow 1 test request in half-open state
+    halfOpenMaxCalls: 1     // Allow 1 test request in half-open state
   }
 })
 ```
@@ -99,7 +99,7 @@ transports.webhook({
   dlq: {
     enabled: true,
     maxSize: 1000,              // Store up to 1000 failed logs
-    onFull: 'drop-oldest',      // or 'drop-newest'
+    overflow: 'drop-oldest',    // or 'drop-newest'
     persist: './logs/dlq.json'  // Optional: save to disk
   }
 })

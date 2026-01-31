@@ -37,13 +37,13 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
     enabled: circuitBreaker?.enabled ?? false,
     threshold: circuitBreaker?.threshold ?? 5,
     timeout: circuitBreaker?.timeout ?? 30000,
-    halfOpenRequests: circuitBreaker?.halfOpenRequests ?? 1
+    halfOpenMaxCalls: circuitBreaker?.halfOpenMaxCalls ?? 1
   }
 
   const dlqConfig = {
     enabled: dlq?.enabled ?? false,
     maxSize: dlq?.maxSize ?? 1000,
-    onFull: dlq?.onFull ?? 'drop-oldest' as const,
+    overflow: dlq?.overflow ?? 'drop-oldest' as const,
     persist: dlq?.persist
   }
 
@@ -91,7 +91,11 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
         delay = retryConfig.initialDelay
     }
     
-    return Math.min(delay, retryConfig.maxDelay)
+    delay = Math.min(delay, retryConfig.maxDelay)
+    
+    // Add jitter (±25%) to prevent thundering herd problem
+    const jitter = delay * 0.25 * (Math.random() * 2 - 1)
+    return Math.floor(delay + jitter)
   }
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -110,7 +114,7 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
     }
     
     if (circuitState === 'half-open') {
-      return halfOpenAttempts < cbConfig.halfOpenRequests
+      return halfOpenAttempts < cbConfig.halfOpenMaxCalls
     }
     
     return true
@@ -156,7 +160,7 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
     
     for (const entry of entries) {
       if (deadLetterQueue.length >= dlqConfig.maxSize) {
-        if (dlqConfig.onFull === 'drop-oldest') {
+        if (dlqConfig.overflow === 'drop-oldest') {
           deadLetterQueue.shift()
         } else {
           continue

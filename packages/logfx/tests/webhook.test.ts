@@ -598,7 +598,7 @@ describe('Webhook Transport', () => {
           dlq: {
             enabled: true,
             maxSize: 2,
-            onFull: 'drop-oldest'
+            overflow: 'drop-oldest'
           }
         })]
       })
