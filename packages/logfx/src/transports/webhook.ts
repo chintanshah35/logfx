@@ -13,17 +13,29 @@ try {
 export const webhookTransport = (options: WebhookTransportOptions): Transport => {
   const { 
     url, 
+    urls,
     headers = {}, 
     method = 'POST',
     batchSize = 10,
     flushInterval = 5000,
     retry,
     circuitBreaker,
-    dlq
+    dlq,
+    failover
   } = options
 
+  const endpoints = urls && urls.length > 0 ? urls : [url]
   const maxBufferSize = options.maxBufferSize ?? (batchSize * 10)
   const timeout = options.timeout ?? 30000
+
+  const failoverConfig = {
+    strategy: failover?.strategy ?? 'round-robin' as const,
+    healthCheck: failover?.healthCheck ?? false,
+    healthInterval: failover?.healthInterval ?? 30000
+  }
+
+  let currentEndpointIndex = 0
+  const endpointHealth = new Map<string, { healthy: boolean; lastCheck: number }>()
 
   const retryConfig = {
     maxRetries: retry?.maxRetries ?? 3,
@@ -195,6 +207,39 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
     }
   }
 
+  const getNextEndpoint = (): string => {
+    if (endpoints.length === 1) return endpoints[0]
+
+    switch (failoverConfig.strategy) {
+      case 'round-robin':
+        const endpoint = endpoints[currentEndpointIndex]
+        currentEndpointIndex = (currentEndpointIndex + 1) % endpoints.length
+        return endpoint
+
+      case 'priority':
+        for (const ep of endpoints) {
+          const health = endpointHealth.get(ep)
+          if (!health || health.healthy) {
+            return ep
+          }
+        }
+        return endpoints[0]
+
+      case 'latency':
+        return endpoints[0]
+
+      default:
+        return endpoints[0]
+    }
+  }
+
+  const markEndpointHealth = (endpoint: string, healthy: boolean) => {
+    endpointHealth.set(endpoint, {
+      healthy,
+      lastCheck: Date.now()
+    })
+  }
+
   loadDeadLetterQueue()
 
   const sendLogs = async (entries: LogEntry[]) => {
@@ -214,11 +259,12 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
     let finalError: unknown = null
 
     for (let attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {
+      const targetUrl = getNextEndpoint()
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), timeout)
 
       try {
-        const response = await fetch(url, {
+        const response = await fetch(targetUrl, {
           method,
           headers: { 'Content-Type': 'application/json', ...headers },
           body,
@@ -228,6 +274,8 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
         clearTimeout(timeoutId)
         
         if (!response.ok) {
+          markEndpointHealth(targetUrl, false)
+          
           if (shouldRetry(null, response.status) && attempt < retryConfig.maxRetries) {
             const delay = calculateDelay(attempt)
             safeConsole.warn(`[logfx:webhook] HTTP ${response.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${retryConfig.maxRetries})`)
@@ -235,13 +283,14 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
             continue
           }
           
-          safeConsole.error(`[logfx:webhook] HTTP ${response.status} ${response.statusText} for ${url}`)
+          safeConsole.error(`[logfx:webhook] HTTP ${response.status} ${response.statusText} for ${targetUrl}`)
           finalError = new Error(`HTTP ${response.status}`)
           recordFailure()
           addToDeadLetterQueue(entries)
           return
         }
         
+        markEndpointHealth(targetUrl, true)
         recordSuccess()
         return
       } catch (error) {
