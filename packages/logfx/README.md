@@ -251,7 +251,8 @@ transports.file({
 |-----------|-------------|
 | `console` | Pretty or JSON output to stdout |
 | `file` | Write to file (Node.js only) |
-| `webhook` | POST logs to HTTP endpoint |
+| `webhook` | POST logs to HTTP endpoint with retry and failover |
+| `beacon` | Browser-only, reliable delivery on page unload |
 
 ### Webhook Transport Options
 
@@ -279,6 +280,33 @@ transports.webhook({
 **Batching:** Logs are sent automatically when the batch is full or on the flush interval. Oldest logs are dropped if the buffer exceeds maxBufferSize.
 
 **Retry Logic:** Failed requests are automatically retried with exponential backoff. Retries occur on network errors and 5xx status codes by default.
+
+### Beacon Transport (Browser Only)
+
+Reliable log delivery on page unload using the Beacon API:
+
+```typescript
+transports.beacon({
+  url: '/api/logs',
+  maxPayloadSize: 64000,  // 64KB limit for sendBeacon
+  events: {
+    beforeunload: true,      // Flush on page close
+    visibilitychange: true,  // Flush when tab hidden
+    pagehide: true          // Flush on page hide
+  }
+})
+```
+
+**Use Cases:**
+- Single Page Applications (SPAs)
+- Analytics and user behavior tracking
+- Error reporting on page close
+- Session end logging
+
+**Benefits:**
+- Guaranteed delivery even when page closes
+- Non-blocking (doesn't delay page unload)
+- Automatic fallback to fetch if sendBeacon unavailable
 
 ## Context
 
