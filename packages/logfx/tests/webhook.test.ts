@@ -615,4 +615,65 @@ describe('Webhook Transport', () => {
       vi.useRealTimers()
     })
   })
+
+  describe('multi-region failover', () => {
+    it('uses round-robin strategy', async () => {
+      vi.useFakeTimers()
+      
+      fetchMock.mockResolvedValue({ ok: true, status: 200 })
+
+      const log = createLogger({
+        transports: [transports.webhook({ 
+          url: '',
+          urls: ['https://us.api.com/logs', 'https://eu.api.com/logs'],
+          batchSize: 1,
+          failover: {
+            strategy: 'round-robin'
+          }
+        })]
+      })
+
+      log.info('test1')
+      log.info('test2')
+      log.info('test3')
+      await vi.advanceTimersByTimeAsync(150)
+      
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+      expect(fetchMock.mock.calls[0][0]).toBe('https://us.api.com/logs')
+      expect(fetchMock.mock.calls[1][0]).toBe('https://eu.api.com/logs')
+      expect(fetchMock.mock.calls[2][0]).toBe('https://us.api.com/logs')
+      
+      vi.useRealTimers()
+    })
+
+    it('uses priority strategy with health checks', async () => {
+      vi.useFakeTimers()
+      
+      fetchMock
+        .mockResolvedValueOnce({ ok: false, status: 503 })
+        .mockResolvedValueOnce({ ok: true, status: 200 })
+
+      const log = createLogger({
+        transports: [transports.webhook({ 
+          url: '',
+          urls: ['https://us.api.com/logs', 'https://eu.api.com/logs'],
+          batchSize: 1,
+          retry: { maxRetries: 0 },
+          failover: {
+            strategy: 'priority'
+          }
+        })]
+      })
+
+      log.info('test1')
+      log.info('test2')
+      await vi.advanceTimersByTimeAsync(100)
+      
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(fetchMock.mock.calls[0][0]).toBe('https://us.api.com/logs')
+      expect(fetchMock.mock.calls[1][0]).toBe('https://eu.api.com/logs')
+      
+      vi.useRealTimers()
+    })
+  })
 })
