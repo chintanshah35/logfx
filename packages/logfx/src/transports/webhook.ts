@@ -240,7 +240,38 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
     })
   }
 
+  const performHealthCheck = async (endpoint: string): Promise<boolean> => {
+    if (!failoverConfig.healthCheck) return true
+
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+      const response = await fetch(endpoint, {
+        method: 'HEAD',
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+      return response.ok
+    } catch {
+      return false
+    }
+  }
+
+  const startHealthChecks = () => {
+    if (!failoverConfig.healthCheck || endpoints.length <= 1) return
+
+    setInterval(async () => {
+      for (const endpoint of endpoints) {
+        const healthy = await performHealthCheck(endpoint)
+        markEndpointHealth(endpoint, healthy)
+      }
+    }, failoverConfig.healthInterval)
+  }
+
   loadDeadLetterQueue()
+  startHealthChecks()
 
   const sendLogs = async (entries: LogEntry[]) => {
     if (entries.length === 0) return
