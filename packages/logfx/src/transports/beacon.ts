@@ -82,7 +82,7 @@ export const beaconTransport = (options: BeaconTransportOptions): Transport => {
 
   if (isBrowser) {
     if (events.beforeunload) {
-      window.addEventListener('beforeunload', (event) => {
+      window.addEventListener('beforeunload', () => {
         flushBuffer()
       }, { capture: true })
     }
@@ -107,6 +107,10 @@ export const beaconTransport = (options: BeaconTransportOptions): Transport => {
     window.addEventListener('freeze', () => {
       safeConsole.info('[logfx:beacon] Page frozen, flushing logs')
       flushBuffer()
+    }, { capture: true })
+
+    window.addEventListener('resume', () => {
+      safeConsole.info('[logfx:beacon] Page resumed from freeze')
     }, { capture: true })
   }
 
