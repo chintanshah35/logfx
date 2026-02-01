@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>logfx Browser Example</title>
+</head>
+<body>
+  <h1>logfx Browser Example</h1>
+  <button id="log-btn">Log Message</button>
+  <button id="error-btn">Log Error</button>
+  <button id="close-btn">Close Tab (Test Beacon)</button>
+
+  <script type="module">
+    import { createLogger, transports } from '../dist/index.js'
+
+    const log = createLogger({
+      transports: [
+        transports.console({ format: 'pretty' }),
+        transports.beacon({
+          url: '/api/logs',
+          events: {
+            beforeunload: true,
+            visibilitychange: true,
+            pagehide: true
+          }
+        })
+      ]
+    })
+
+    document.getElementById('log-btn').addEventListener('click', () => {
+      log.info('Button clicked', { timestamp: Date.now() })
+    })
+
+    document.getElementById('error-btn').addEventListener('click', () => {
+      log.error('Test error', new Error('Something went wrong'))
+    })
+
+    document.getElementById('close-btn').addEventListener('click', () => {
+      log.info('User closing tab')
+      window.close()
+    })
+
+    // Log page load
+    log.info('Page loaded', { 
+      userAgent: navigator.userAgent,
+      url: window.location.href
+    })
+  </script>
+</body>
+</html>
