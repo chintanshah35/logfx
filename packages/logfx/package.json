@@ -48,7 +48,12 @@
     "effects",
     "express",
     "middleware",
-    "request-id"
+    "request-id",
+    "sendbeacon",
+    "retry",
+    "circuit-breaker",
+    "failover",
+    "multi-region"
   ],
   "author": "",
   "license": "MIT",
