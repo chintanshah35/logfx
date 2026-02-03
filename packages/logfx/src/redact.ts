@@ -43,24 +43,45 @@ const setNestedValue = (obj: Record<string, unknown>, path: string, value: unkno
   }
 }
 
+const redactByPattern = (value: unknown, patterns: RegExp[], censor: string | ((match: string) => string)): unknown => {
+  if (typeof value !== 'string') return value
+  
+  let result = value
+  for (const pattern of patterns) {
+    if (typeof censor === 'function') {
+      result = result.replace(pattern, censor)
+    } else {
+      result = result.replace(pattern, censor)
+    }
+  }
+  
+  return result
+}
+
 const redactKeys = (
   obj: Record<string, unknown>,
   keys: string[],
-  censor: string
+  censor: string | ((match: string) => string),
+  patterns: RegExp[]
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = {}
   
   for (const [key, value] of Object.entries(obj)) {
     if (keys.includes(key)) {
-      result[key] = censor
+      result[key] = typeof censor === 'function' ? censor(String(value)) : censor
+    } else if (typeof value === 'string' && patterns.length > 0) {
+      result[key] = redactByPattern(value, patterns, censor)
     } else if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-      result[key] = redactKeys(value as Record<string, unknown>, keys, censor)
+      result[key] = redactKeys(value as Record<string, unknown>, keys, censor, patterns)
     } else if (Array.isArray(value)) {
-      result[key] = value.map(item => 
-        item !== null && typeof item === 'object' 
-          ? redactKeys(item as Record<string, unknown>, keys, censor)
-          : item
-      )
+      result[key] = value.map(item => {
+        if (typeof item === 'string' && patterns.length > 0) {
+          return redactByPattern(item, patterns, censor)
+        } else if (item !== null && typeof item === 'object') {
+          return redactKeys(item as Record<string, unknown>, keys, censor, patterns)
+        }
+        return item
+      })
     } else {
       result[key] = value
     }
@@ -106,27 +127,58 @@ export const redactData = (
   data: Record<string, unknown>,
   options: RedactOptions
 ): Record<string, unknown> => {
-  if (!options.keys?.length && !options.paths?.length) {
+  if (!options.keys?.length && !options.paths?.length && !options.patterns?.length && !options.customPatterns?.length && !options.custom) {
     return data
   }
   
   const censor = options.censor ?? DEFAULT_CENSOR
   
+  // Build pattern list
+  const patterns: RegExp[] = []
+  if (options.patterns?.length) {
+    for (const patternName of options.patterns) {
+      patterns.push(PII_PATTERNS[patternName])
+    }
+  }
+  if (options.customPatterns?.length) {
+    for (const custom of options.customPatterns) {
+      patterns.push(custom.regex)
+    }
+  }
+  
   // Deep clone for nested modifications (handles circular references)
   let result = deepClone(data)
   
-  // Redact by key names (recursive)
-  if (options.keys?.length) {
-    result = redactKeys(result, options.keys, censor)
+  // Redact by key names and patterns (recursive)
+  if (options.keys?.length || patterns.length > 0) {
+    result = redactKeys(result, options.keys ?? [], censor, patterns)
   }
   
   // Redact by specific paths
   if (options.paths?.length) {
     for (const path of options.paths) {
       if (getNestedValue(result, path) !== undefined) {
-        setNestedValue(result, path, censor)
+        const censorValue = typeof censor === 'function' ? censor(String(getNestedValue(result, path))) : censor
+        setNestedValue(result, path, censorValue)
       }
     }
+  }
+  
+  // Apply custom redaction function
+  if (options.custom) {
+    const applyCustom = (obj: Record<string, unknown>): Record<string, unknown> => {
+      const output: Record<string, unknown> = {}
+      for (const [key, value] of Object.entries(obj)) {
+        const redacted = options.custom!(key, value)
+        if (redacted !== null && typeof redacted === 'object' && !Array.isArray(redacted)) {
+          output[key] = applyCustom(redacted as Record<string, unknown>)
+        } else {
+          output[key] = redacted
+        }
+      }
+      return output
+    }
+    result = applyCustom(result)
   }
   
   return result
