@@ -1,6 +1,15 @@
-import type { RedactOptions } from './types'
+import type { RedactOptions, PIIPattern } from './types'
 
 const DEFAULT_CENSOR = '[REDACTED]'
+
+const PII_PATTERNS: Record<PIIPattern, RegExp> = {
+  email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+  ssn: /\b\d{3}-\d{2}-\d{4}\b/g,
+  creditCard: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g,
+  phone: /\b(\+\d{1,3}[\s-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g,
+  ip: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
+  jwt: /\beyJ[A-Za-z0-9_-]*\.eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\b/g
+}
 
 const getNestedValue = (obj: Record<string, unknown>, path: string): unknown => {
   const parts = path.split('.')
