@@ -88,10 +88,20 @@ export interface WebhookTransportOptions {
   }
 }
 
+export type PIIPattern = 'email' | 'ssn' | 'creditCard' | 'phone' | 'ip' | 'jwt'
+
+export interface CustomPattern {
+  name: string
+  regex: RegExp
+}
+
 export interface RedactOptions {
   paths?: string[]
   keys?: string[]
-  censor?: string
+  patterns?: PIIPattern[]
+  customPatterns?: CustomPattern[]
+  custom?: (key: string, value: unknown) => unknown
+  censor?: string | ((match: string) => string)
 }
 
 export interface SamplingOptions {
