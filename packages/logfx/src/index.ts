@@ -88,6 +88,8 @@ export const transports = {
 
 export { consoleTransport, fileTransport, webhookTransport, beaconTransport }
 
+export { redactData, maskEmail, maskCreditCard, maskPhone } from './redact'
+
 export { expressLogger } from './middleware'
 export type { ExpressLoggerOptions } from './middleware'
 

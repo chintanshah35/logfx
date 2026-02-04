@@ -2,6 +2,25 @@ import type { RedactOptions, PIIPattern } from './types'
 
 const DEFAULT_CENSOR = '[REDACTED]'
 
+export const maskEmail = (email: string): string => {
+  const [local, domain] = email.split('@')
+  if (!domain) return '[REDACTED]'
+  const maskedLocal = local.length > 2 ? local[0] + '***' + local[local.length - 1] : '***'
+  return `${maskedLocal}@${domain}`
+}
+
+export const maskCreditCard = (card: string): string => {
+  const digits = card.replace(/\D/g, '')
+  if (digits.length < 4) return '[REDACTED]'
+  return `****-****-****-${digits.slice(-4)}`
+}
+
+export const maskPhone = (phone: string): string => {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length < 4) return '[REDACTED]'
+  return `***-***-${digits.slice(-4)}`
+}
+
 const PII_PATTERNS: Record<PIIPattern, RegExp> = {
   email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
   ssn: /\b\d{3}-?\d{2}-?\d{4}\b/g,
