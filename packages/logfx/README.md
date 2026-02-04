@@ -341,17 +341,37 @@ requestLog.info('Processing')
 Automatically hide sensitive data:
 
 ```typescript
+import { createLogger, maskEmail, maskCreditCard } from 'logfx'
+
 const log = createLogger({
   redact: {
     keys: ['password', 'token', 'apiKey'],
     paths: ['user.email', 'config.secret'],
-    censor: '[HIDDEN]'  // default: '[REDACTED]'
+    censor: '[HIDDEN]',  // default: '[REDACTED]'
+    
+    // Automatic PII detection
+    patterns: ['email', 'ssn', 'creditCard', 'phone', 'ip', 'jwt'],
+    
+    // Custom patterns
+    customPatterns: [
+      { name: 'apiKey', regex: /sk_(live|test)_[a-zA-Z0-9]+/g }
+    ],
+    
+    // Custom redaction logic
+    custom: (key, value) => {
+      if (key === 'email') return maskEmail(String(value))
+      if (key === 'cardNumber') return maskCreditCard(String(value))
+      return value
+    }
   },
   transports: [transports.console({ format: 'json' })]
 })
 
 log.info('User login', { username: 'john', password: 'secret123' })
 // {"username":"john","password":"[HIDDEN]",...}
+
+log.info('Contact user@example.com with card 4532-1234-5678-9010')
+// Automatically redacts email and credit card
 ```
 
 ## Log Sampling
