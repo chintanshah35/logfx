@@ -1,4 +1,4 @@
-import type { LogLevel, LoggerOptions, Logger, Transport, LogEntry, RedactOptions, SamplingOptions, BufferOptions } from './types'
+import type { LogLevel, LoggerOptions, Logger, Transport, LogEntry, RedactOptions, SamplingOptions, BufferOptions, TraceContext } from './types'
 import { isBrowser, isProduction, levelPriority } from './styles'
 import { formatBrowser, formatNode, getConsoleMethod } from './formatters'
 import { redactData } from './redact'
@@ -114,12 +114,18 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
         mergedData = redactData(mergedData, config.redact)
       }
       
+      let traceContext: TraceContext | undefined
+      if (config.trace) {
+        traceContext = typeof config.trace === 'function' ? config.trace() : config.trace
+      }
+      
       const entry: LogEntry = {
         timestamp: new Date(),
         level,
         message,
         namespace: config.namespace,
         data: mergedData,
+        trace: traceContext,
         error,
         requestId: config.requestId
       }
