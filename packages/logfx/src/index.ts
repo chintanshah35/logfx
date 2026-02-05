@@ -91,6 +91,8 @@ export { consoleTransport, fileTransport, webhookTransport, beaconTransport }
 
 export { redactData, maskEmail, maskCreditCard, maskPhone } from './redact'
 
+export { generateTraceId, generateSpanId, createTraceContext, parseW3CTraceParent, formatW3CTraceParent } from './trace'
+
 export { expressLogger } from './middleware'
 export type { ExpressLoggerOptions } from './middleware'
 
