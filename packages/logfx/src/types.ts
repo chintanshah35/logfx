@@ -10,6 +10,7 @@ export interface LogEntry {
   data?: Record<string, unknown>
   error?: Error
   requestId?: string
+  trace?: TraceContext
 }
 
 export interface Transport {
@@ -117,6 +118,14 @@ export interface BufferOptions {
   flushInterval?: number
 }
 
+export interface TraceContext {
+  traceId?: string
+  spanId?: string
+  parentSpanId?: string
+  traceFlags?: number
+  traceState?: string
+}
+
 export interface LoggerOptions {
   namespace?: string
   level?: LogLevel
@@ -133,6 +142,7 @@ export interface LoggerOptions {
   requestId?: string
   theme?: string
   detectIssues?: boolean
+  trace?: TraceContext | (() => TraceContext)
 }
 
 export interface LogStyle {
