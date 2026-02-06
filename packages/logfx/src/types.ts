@@ -1,4 +1,4 @@
-export type LogLevel = 'debug' | 'info' | 'success' | 'warn' | 'error'
+export type LogLevel = 'debug' | 'info' | 'success' | 'warn' | 'error' | string
 
 export type LogFormat = 'pretty' | 'json'
 
@@ -126,6 +126,17 @@ export interface TraceContext {
   traceState?: string
 }
 
+export interface CustomLevel {
+  name: string
+  priority: number
+  style?: {
+    emoji?: string
+    color?: string
+    bgColor?: string
+    label?: string
+  }
+}
+
 export interface LoggerOptions {
   namespace?: string
   level?: LogLevel
@@ -143,6 +154,7 @@ export interface LoggerOptions {
   theme?: string
   detectIssues?: boolean
   trace?: TraceContext | (() => TraceContext)
+  customLevels?: CustomLevel[]
 }
 
 export interface LogStyle {
@@ -167,6 +179,7 @@ export interface Logger {
   success: (...args: unknown[]) => void
   warn: (...args: unknown[]) => void
   error: (...args: unknown[]) => void
+  log: (level: LogLevel, ...args: unknown[]) => void
   child: (namespace: string, options?: Partial<LoggerOptions>) => Logger
   setEnabled: (enabled: boolean) => void
   setLevel: (level: LogLevel) => void
@@ -174,6 +187,7 @@ export interface Logger {
   close: () => Promise<void>
   time: (label: string) => void
   timeEnd: (label: string) => void
+  [key: string]: unknown
   measure: <T>(fn: () => T | Promise<T>) => Promise<{ result: T; duration: number }>
 }
 
