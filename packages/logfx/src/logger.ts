@@ -105,8 +105,11 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     if (level === 'debug' && isProduction()) return
     if (!shouldSample(level, config.sampling)) return
 
+    // Lazy evaluation: resolve functions only after filters pass
+    const resolvedArgs = args.map(arg => typeof arg === 'function' ? arg() : arg)
+
     if (config.transports && config.transports.length > 0) {
-      const { message, data, error } = extractMessage(args)
+      const { message, data, error } = extractMessage(resolvedArgs)
       
       let mergedData = config.context ? { ...config.context, ...data } : data
       
