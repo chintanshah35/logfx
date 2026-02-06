@@ -230,12 +230,13 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     }
   }
 
-  return {
+  const logger: Logger = {
     debug: (...args: unknown[]) => logInternal('debug', ...args),
     info: (...args: unknown[]) => logInternal('info', ...args),
     success: (...args: unknown[]) => logInternal('success', ...args),
     warn: (...args: unknown[]) => logInternal('warn', ...args),
     error: (...args: unknown[]) => logInternal('error', ...args),
+    log: (level: LogLevel, ...args: unknown[]) => logInternal(level, ...args),
     child,
     setEnabled: (enabled: boolean) => {
       config.enabled = enabled
@@ -257,4 +258,13 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     },
     measure,
   }
+  
+  // Add custom level methods
+  if (options.customLevels) {
+    for (const customLevel of options.customLevels) {
+      logger[customLevel.name] = (...args: unknown[]) => logInternal(customLevel.name, ...args)
+    }
+  }
+  
+  return logger
 }
