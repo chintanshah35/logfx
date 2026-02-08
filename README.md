@@ -6,7 +6,11 @@ Production-ready logging for JavaScript and TypeScript.
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| [logfx](./packages/logfx) | 0.5.0 | Core logging library (zero dependencies) |
+| [logfx](./packages/logfx) | 1.0.0 | Core logging library (zero dependencies) |
+| [logfx-otel](./packages/logfx-otel) | 1.0.0 | OpenTelemetry integration |
+| [logfx-sentry](./packages/logfx-sentry) | 1.0.0 | Sentry error tracking integration |
+| [logfx-datadog](./packages/logfx-datadog) | 1.0.0 | Datadog APM integration |
+| [logfx-elasticsearch](./packages/logfx-elasticsearch) | 1.0.0 | Elasticsearch logging integration |
 
 ## Development
 
