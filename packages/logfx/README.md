@@ -11,20 +11,47 @@
 
 ## Features
 
+**Core Logging:**
 - **Colorful output** with emoji prefixes
 - **Namespaces** to organize logs by module
-- **Log levels** — `debug`, `info`, `success`, `warn`, `error`
+- **Log levels** — `debug`, `info`, `success`, `warn`, `error` + custom levels
 - **Color themes** — dracula, monokai, or custom
-- **Issue detection** — warns about undefined values and passwords in logs
-- **Auto-silencing** — debug logs hidden in production
 - **Timestamps** — optional time display
 - **Context** — attach metadata to all logs
-- **Field redaction** — hide sensitive data automatically
-- **Log sampling** — reduce log volume in production
-- **Async logging** — buffer and batch logs for performance
-- **Framework middleware** — Express and Fastify support
 - **Universal** — works in Node.js and browsers
 - **Tiny** — zero dependencies, ~3KB gzipped
+
+**Reliability & Performance:**
+- **Retry logic** — exponential backoff with jitter
+- **Circuit breaker** — prevent cascading failures
+- **Dead letter queue** — persist failed logs
+- **Multi-region failover** — automatic endpoint switching
+- **Lazy evaluation** — optimize performance
+- **Async logging** — buffer and batch logs
+
+**Security & Privacy:**
+- **PII detection** — automatic redaction of emails, SSN, credit cards, phone, IP, JWT
+- **Custom patterns** — define your own sensitive data patterns
+- **Field redaction** — hide sensitive data by key or path
+- **Masking functions** — partial redaction for debugging
+
+**Observability:**
+- **Trace context** — W3C TraceParent format support
+- **OpenTelemetry** — seamless integration via logfx-otel
+- **Request ID tracking** — correlate logs across services
+- **Log sampling** — reduce volume in production
+
+**Transports:**
+- **Console** — pretty or JSON output
+- **File** — with rotation support
+- **Webhook** — HTTP endpoint with retry and failover
+- **Beacon** — browser sendBeacon for reliable page unload
+
+**Integrations:**
+- **Framework middleware** — Express, Fastify, Next.js
+- **Sentry** — error tracking via logfx-sentry
+- **Datadog** — APM via logfx-datadog
+- **Elasticsearch** — search and analytics via logfx-elasticsearch
 - **TypeScript** — full type support
 
 ## Installation
