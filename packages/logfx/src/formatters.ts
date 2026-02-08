@@ -135,9 +135,9 @@ export const formatNode = (
   const formattedArgs = args.map((arg) => {
     if (arg instanceof Error) {
       if (disableColors) {
-        return arg.stack || `${arg.name ?? 'Error'}: ${arg.message ?? String(arg)}`
+        return arg?.stack || `${arg?.name ?? 'Error'}: ${arg?.message ?? String(arg)}`
       }
-      const stack = arg.stack || `${arg.name ?? 'Error'}: ${arg.message ?? String(arg)}`
+      const stack = arg?.stack || `${arg?.name ?? 'Error'}: ${arg?.message ?? String(arg)}`
       return `\x1b[31m${stack}\x1b[0m`
     }
     
@@ -171,9 +171,9 @@ export const getConsoleMethod = (level: LogLevel): 'log' | 'warn' | 'error' | 'd
 
 const serializeError = (error: Error): Record<string, unknown> => {
   const serialized: Record<string, unknown> = {
-    name: error.name ?? 'Error',
-    message: error.message ?? String(error),
-    stack: error.stack
+    name: error?.name ?? 'Error',
+    message: error?.message ?? String(error),
+    stack: error?.stack
   }
   
   const errorObj = error as any
