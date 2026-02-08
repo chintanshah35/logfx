@@ -38,6 +38,7 @@ describe('Beacon Transport', () => {
     })
 
     log.info('test message')
+    await new Promise(resolve => queueMicrotask(resolve))
     await new Promise(resolve => setTimeout(resolve, 10))
 
     expect(sendBeaconMock).toHaveBeenCalledTimes(1)
@@ -54,6 +55,7 @@ describe('Beacon Transport', () => {
     })
 
     log.info('test message')
+    await new Promise(resolve => queueMicrotask(resolve))
     await new Promise(resolve => setTimeout(resolve, 10))
 
     expect(sendBeaconMock).toHaveBeenCalled()
@@ -70,6 +72,7 @@ describe('Beacon Transport', () => {
 
     const largeData = 'x'.repeat(200)
     log.info('test', { data: largeData })
+    await new Promise(resolve => queueMicrotask(resolve))
     await new Promise(resolve => setTimeout(resolve, 10))
 
     expect(sendBeaconMock).toHaveBeenCalledTimes(2)
@@ -84,6 +87,7 @@ describe('Beacon Transport', () => {
     })
 
     log.info('small message')
+    await new Promise(resolve => queueMicrotask(resolve))
     await new Promise(resolve => setTimeout(resolve, 10))
 
     expect(sendBeaconMock).toHaveBeenCalledTimes(1)
