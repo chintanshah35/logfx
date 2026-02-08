@@ -42,9 +42,9 @@ export const elasticsearchTransport = (options: ElasticsearchTransportOptions): 
         trace: entry.trace,
         ...entry.data,
         error: entry.error ? {
-          message: entry.error.message,
+          message: entry.error.message ?? String(entry.error),
           stack: entry.error.stack,
-          name: entry.error.name
+          name: entry.error.name ?? 'Error'
         } : undefined
       }
     ])
