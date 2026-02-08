@@ -289,7 +289,6 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
     }
 
     const body = JSON.stringify(entries.map(entry => JSON.parse(formatJson(entry))))
-    let finalError: unknown = null
 
     for (let attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {
       const targetUrl = getNextEndpoint()
@@ -317,7 +316,6 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
           }
           
           safeConsole.error(`[logfx:webhook] HTTP ${response.status} ${response.statusText} for ${targetUrl}`)
-          finalError = new Error(`HTTP ${response.status}`)
           recordFailure()
           addToDeadLetterQueue(entries)
           return
@@ -345,7 +343,6 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
           safeConsole.error('[logfx:webhook] Failed to send logs:', getErrorMessage(error))
         }
         
-        finalError = error
         recordFailure()
         addToDeadLetterQueue(entries)
         return
