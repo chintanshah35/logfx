@@ -40,8 +40,8 @@ export const otelTransport = (options: OtelTransportOptions = {}): Transport => 
         }
 
         if (entry.error) {
-          attributes['log.error.message'] = entry.error.message ?? String(entry.error)
-          attributes['log.error.stack'] = entry.error.stack
+          attributes['log.error.message'] = entry.error?.message ?? String(entry.error)
+          attributes['log.error.stack'] = entry.error?.stack
           activeSpan.recordException(entry.error)
         }
 
@@ -63,7 +63,7 @@ export const otelTransport = (options: OtelTransportOptions = {}): Transport => 
 
         if (entry.error) {
           span.recordException(entry.error)
-          span.setStatus({ code: SpanStatusCode.ERROR, message: entry.error.message ?? String(entry.error) })
+          span.setStatus({ code: SpanStatusCode.ERROR, message: entry.error?.message ?? String(entry.error) })
         }
 
         span.end()
