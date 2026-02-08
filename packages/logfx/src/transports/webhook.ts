@@ -4,10 +4,12 @@ import { safeConsole } from '../console'
 import { getErrorMessage } from '../utils'
 
 let fs: typeof import('fs') | null = null
-try {
-  fs = await import('fs')
-} catch {
-  // Browser environment
+if (typeof process !== 'undefined' && typeof require !== 'undefined') {
+  try {
+    fs = require('fs')
+  } catch {
+    // Browser environment or fs not available
+  }
 }
 
 export const webhookTransport = (options: WebhookTransportOptions): Transport => {
