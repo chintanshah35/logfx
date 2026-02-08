@@ -37,7 +37,7 @@ const matchesFilter = (namespace: string | undefined, filter: string | null): bo
 const shouldSample = (level: LogLevel, sampling?: SamplingOptions): boolean => {
   if (!sampling) return true
   
-  const rate = sampling[level]
+  const rate = sampling[level as keyof SamplingOptions]
   if (rate === undefined) return true
   if (rate >= 1) return true
   if (rate <= 0) return false
@@ -85,6 +85,7 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     async: options.async ?? false,
     buffer: options.buffer as BufferOptions | undefined,
     requestId: options.requestId as string | undefined,
+    trace: options.trace,
   }
 
   const debugFilter = getDebugFilter()

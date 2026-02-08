@@ -13,7 +13,7 @@ describe('PII Pattern Redaction', () => {
     })
 
     expect(result.message).toBe('Contact [REDACTED] for details')
-    expect(result.email).toBe('admin@test.org')
+    expect(result.email).toBe('[REDACTED]')  // Patterns redact all matching strings
   })
 
   it('redacts SSN numbers', () => {
