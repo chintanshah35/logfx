@@ -1,4 +1,5 @@
-import type { Transport, LogEntry } from 'logfx'
+import type { Transport, LogEntry, WebhookTransportOptions } from 'logfx'
+import { webhookTransport } from 'logfx'
 
 export interface DatadogTransportOptions {
   apiKey: string
@@ -7,6 +8,12 @@ export interface DatadogTransportOptions {
   tags?: string[]
   source?: string
   hostname?: string
+  batchSize?: number
+  flushInterval?: number
+  retry?: WebhookTransportOptions['retry']
+  circuitBreaker?: WebhookTransportOptions['circuitBreaker']
+  dlq?: WebhookTransportOptions['dlq']
+  timeout?: number
 }
 
 export const datadogTransport = (options: DatadogTransportOptions): Transport => {
@@ -14,50 +21,31 @@ export const datadogTransport = (options: DatadogTransportOptions): Transport =>
   const source = options.source ?? 'logfx'
   const hostname = options.hostname ?? (typeof process !== 'undefined' ? process.env.HOSTNAME : 'unknown')
 
-  const buffer: string[] = []
-  const batchSize = 100
-  const flushInterval = 5000
-  let flushTimer: ReturnType<typeof setTimeout> | null = null
-
-  const sendLogs = async (logs: string[]) => {
-    if (logs.length === 0) return
-
-    try {
-      const response = await fetch(`https://${host}/api/v2/logs`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'DD-API-KEY': options.apiKey
-        },
-        body: JSON.stringify(logs.map(log => JSON.parse(log)))
-      })
-
-      if (!response.ok) {
-        console.error('Failed to send logs to Datadog:', response.statusText)
-      }
-    } catch (error) {
-      console.error('Error sending logs to Datadog:', error)
+  const webhook = webhookTransport({
+    url: `https://${host}/api/v2/logs`,
+    headers: {
+      'Content-Type': 'application/json',
+      'DD-API-KEY': options.apiKey
+    },
+    batchSize: options.batchSize ?? 100,
+    flushInterval: options.flushInterval ?? 5000,
+    timeout: options.timeout ?? 30000,
+    retry: options.retry ?? {
+      maxRetries: 3,
+      initialDelay: 1000,
+      backoff: 'exponential'
+    },
+    circuitBreaker: options.circuitBreaker ?? {
+      enabled: true,
+      threshold: 5,
+      timeout: 30000
+    },
+    dlq: options.dlq ?? {
+      enabled: true,
+      maxSize: 1000,
+      overflow: 'drop-oldest'
     }
-  }
-
-  const flush = async () => {
-    if (buffer.length > 0) {
-      const logsToSend = buffer.splice(0, buffer.length)
-      await sendLogs(logsToSend)
-    }
-    if (flushTimer) {
-      clearTimeout(flushTimer)
-      flushTimer = null
-    }
-  }
-
-  const scheduleFlush = () => {
-    if (!flushTimer) {
-      flushTimer = setTimeout(() => {
-        flush()
-      }, flushInterval)
-    }
-  }
+  })
 
   return {
     name: 'datadog',
@@ -77,15 +65,12 @@ export const datadogTransport = (options: DatadogTransportOptions): Transport =>
         span_id: entry.trace?.spanId
       }
 
-      buffer.push(JSON.stringify(ddLog))
-
-      if (buffer.length >= batchSize) {
-        flush()
-      } else {
-        scheduleFlush()
-      }
+      webhook.log({
+        ...entry,
+        data: ddLog
+      })
     },
-    flush,
-    close: flush
+    flush: webhook.flush,
+    close: webhook.close
   }
 }
