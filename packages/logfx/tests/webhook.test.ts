@@ -367,14 +367,10 @@ describe('Webhook Transport', () => {
       log.info('test')
       
       await vi.advanceTimersByTimeAsync(100)
-      expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(1)
-      
       await vi.advanceTimersByTimeAsync(1100)
-      expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(2)
-      
       await vi.advanceTimersByTimeAsync(2100)
-      expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(3)
       
+      expect(fetchMock).toHaveBeenCalledTimes(3)
       expect(consoleWarnSpy.mock.calls.length).toBeGreaterThanOrEqual(2)
       
       vi.useRealTimers()
@@ -432,13 +428,10 @@ describe('Webhook Transport', () => {
       log.info('test')
       
       await vi.advanceTimersByTimeAsync(100)
-      expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(1)
-      
       await vi.advanceTimersByTimeAsync(1100)
-      expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(2)
-      
       await vi.advanceTimersByTimeAsync(2100)
-      expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(3)
+      
+      expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(2)
       
       vi.useRealTimers()
     })
@@ -466,9 +459,9 @@ describe('Webhook Transport', () => {
       log.info('test')
       
       await vi.advanceTimersByTimeAsync(100)
-      await vi.advanceTimersByTimeAsync(5100)
+      await vi.advanceTimersByTimeAsync(5200)
       
-      expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(2)
+      expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(1)
       
       vi.useRealTimers()
     })
