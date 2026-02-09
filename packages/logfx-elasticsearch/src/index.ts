@@ -1,5 +1,5 @@
-import type { Transport, LogEntry } from 'logfx'
-import { Client } from '@elastic/elasticsearch'
+import type { Transport, LogEntry, WebhookTransportOptions } from 'logfx'
+import { webhookTransport } from 'logfx'
 
 export interface ElasticsearchTransportOptions {
   node: string | string[]
@@ -12,28 +12,57 @@ export interface ElasticsearchTransportOptions {
   }
   batchSize?: number
   flushInterval?: number
+  retry?: WebhookTransportOptions['retry']
+  circuitBreaker?: WebhookTransportOptions['circuitBreaker']
+  dlq?: WebhookTransportOptions['dlq']
+  timeout?: number
 }
 
 export const elasticsearchTransport = (options: ElasticsearchTransportOptions): Transport => {
-  const client = new Client({
-    node: options.node,
-    auth: options.auth
+  const index = options.index ?? 'logfx'
+  const nodes = Array.isArray(options.node) ? options.node : [options.node]
+  
+  const authHeader: Record<string, string> = options.auth 
+    ? 'apiKey' in options.auth
+      ? { 'Authorization': `ApiKey ${options.auth.apiKey}` }
+      : { 'Authorization': `Basic ${Buffer.from(`${options.auth.username}:${options.auth.password}`).toString('base64')}` }
+    : {}
+
+  const webhook = webhookTransport({
+    url: nodes[0],
+    urls: nodes.length > 1 ? nodes : undefined,
+    headers: {
+      'Content-Type': 'application/x-ndjson',
+      ...authHeader
+    },
+    batchSize: options.batchSize ?? 100,
+    flushInterval: options.flushInterval ?? 5000,
+    timeout: options.timeout ?? 30000,
+    retry: options.retry ?? {
+      maxRetries: 3,
+      initialDelay: 1000,
+      backoff: 'exponential'
+    },
+    circuitBreaker: options.circuitBreaker ?? {
+      enabled: true,
+      threshold: 5,
+      timeout: 30000
+    },
+    dlq: options.dlq ?? {
+      enabled: true,
+      maxSize: 1000,
+      overflow: 'drop-oldest'
+    },
+    failover: nodes.length > 1 ? {
+      strategy: 'round-robin',
+      healthCheck: true
+    } : undefined
   })
 
-  const index = options.index ?? 'logfx'
-  const batchSize = options.batchSize ?? 100
-  const flushInterval = options.flushInterval ?? 5000
-
-  const buffer: LogEntry[] = []
-  let flushTimer: ReturnType<typeof setTimeout> | null = null
-
-  const flush = async () => {
-    if (buffer.length === 0) return
-
-    const logsToSend = buffer.splice(0, buffer.length)
-    const body = logsToSend.flatMap(entry => [
-      { index: { _index: index } },
-      {
+  return {
+    name: 'elasticsearch',
+    log: (entry: LogEntry) => {
+      const esDoc = {
         '@timestamp': entry.timestamp.toISOString(),
         level: entry.level,
         message: entry.message,
@@ -47,43 +76,17 @@ export const elasticsearchTransport = (options: ElasticsearchTransportOptions): 
           name: entry.error?.name ?? 'Error'
         } : undefined
       }
-    ])
 
-    try {
-      await client.bulk({ body })
-    } catch (error) {
-      console.error('Failed to send logs to Elasticsearch:', error)
-    }
-
-    if (flushTimer) {
-      clearTimeout(flushTimer)
-      flushTimer = null
-    }
-  }
-
-  const scheduleFlush = () => {
-    if (!flushTimer) {
-      flushTimer = setTimeout(() => {
-        flush()
-      }, flushInterval)
-    }
-  }
-
-  return {
-    name: 'elasticsearch',
-    log: (entry: LogEntry) => {
-      buffer.push(entry)
-
-      if (buffer.length >= batchSize) {
-        flush()
-      } else {
-        scheduleFlush()
-      }
+      const bulkAction = { index: { _index: index } }
+      
+      webhook.log({
+        ...entry,
+        data: {
+          bulk: `${JSON.stringify(bulkAction)}\n${JSON.stringify(esDoc)}\n`
+        }
+      })
     },
-    flush,
-    close: async () => {
-      await flush()
-      await client.close()
-    }
+    flush: webhook.flush,
+    close: webhook.close
   }
 }
