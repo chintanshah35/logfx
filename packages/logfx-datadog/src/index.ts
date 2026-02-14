@@ -16,10 +16,24 @@ export interface DatadogTransportOptions {
   timeout?: number
 }
 
+const toDatadogLog = (entry: LogEntry, options: DatadogTransportOptions, hostname: string) => ({
+  ddsource: options.source ?? 'logfx',
+  ddtags: options.tags?.join(',') ?? '',
+  hostname,
+  message: entry.message,
+  service: options.service,
+  status: entry.level,
+  timestamp: entry.timestamp.toISOString(),
+  ...entry.data,
+  namespace: entry.namespace,
+  requestId: entry.requestId,
+  trace_id: entry.trace?.traceId,
+  span_id: entry.trace?.spanId
+})
+
 export const datadogTransport = (options: DatadogTransportOptions): Transport => {
   const host = options.host ?? 'http-intake.logs.datadoghq.com'
-  const source = options.source ?? 'logfx'
-  const hostname = options.hostname ?? (typeof process !== 'undefined' ? process.env.HOSTNAME : 'unknown')
+  const hostname = options.hostname ?? (typeof process !== 'undefined' ? process.env?.HOSTNAME : undefined) ?? 'unknown'
 
   const webhook = webhookTransport({
     url: `https://${host}/api/v2/logs`,
@@ -44,32 +58,14 @@ export const datadogTransport = (options: DatadogTransportOptions): Transport =>
       enabled: true,
       maxSize: 1000,
       overflow: 'drop-oldest'
-    }
+    },
+    formatBody: (entries) =>
+      JSON.stringify(entries.map((entry) => toDatadogLog(entry, options, hostname)))
   })
 
   return {
     name: 'datadog',
-    log: (entry: LogEntry) => {
-      const ddLog = {
-        ddsource: source,
-        ddtags: options.tags?.join(',') ?? '',
-        hostname,
-        message: entry.message,
-        service: options.service,
-        status: entry.level,
-        timestamp: entry.timestamp.toISOString(),
-        ...entry.data,
-        namespace: entry.namespace,
-        requestId: entry.requestId,
-        trace_id: entry.trace?.traceId,
-        span_id: entry.trace?.spanId
-      }
-
-      webhook.log({
-        ...entry,
-        data: ddLog
-      })
-    },
+    log: (entry) => webhook.log(entry),
     flush: webhook.flush,
     close: webhook.close
   }
