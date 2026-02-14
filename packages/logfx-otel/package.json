@@ -8,9 +8,9 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs"
     }
   },
   "files": [
@@ -21,7 +21,7 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest",
-    "test:run": "vitest run",
+    "test:run": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "logfx": "workspace:*",
+    "logfx": "file:../logfx",
     "@types/node": "^20.19.27",
     "tsup": "^8.0.1",
     "typescript": "^5.3.2",
