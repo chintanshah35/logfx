@@ -21,8 +21,8 @@ export const styles: Record<LogLevel, LogStyle> = {
   },
   info: {
     emoji: '💡',
-    color: '#3B82F6',   // Blue
-    bgColor: '#DBEAFE',
+    color: '#10B981',   // Green
+    bgColor: '#D1FAE5',
     label: 'INFO',
   },
   success: {
@@ -55,8 +55,8 @@ export const ansiColors: Record<LogLevel, { fg: string; bg: string; reset: strin
     reset: '\x1b[0m',
   },
   info: {
-    fg: '\x1b[36m',      // Cyan
-    bg: '\x1b[46m',      // Cyan background
+    fg: '\x1b[32m',      // Green
+    bg: '\x1b[42m',      // Green background
     reset: '\x1b[0m',
   },
   success: {
