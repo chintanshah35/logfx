@@ -1,5 +1,6 @@
 import type { Transport, LogEntry } from 'logfx'
-import { trace, context, SpanStatusCode, type Span } from '@opentelemetry/api'
+import { trace, SpanStatusCode } from '@opentelemetry/api'
+import type { SpanAttributes } from '@opentelemetry/api'
 
 export interface OtelTransportOptions {
   serviceName?: string
@@ -19,7 +20,7 @@ export const otelTransport = (options: OtelTransportOptions = {}): Transport => 
       const activeSpan = trace.getActiveSpan()
 
       if (activeSpan) {
-        const attributes: Record<string, unknown> = {
+        const attributes: SpanAttributes = {
           'log.level': entry.level,
           'log.message': entry.message,
           'log.timestamp': entry.timestamp.toISOString(),
@@ -41,7 +42,7 @@ export const otelTransport = (options: OtelTransportOptions = {}): Transport => 
 
         if (entry.error) {
           attributes['log.error.message'] = entry.error?.message ?? String(entry.error)
-          attributes['log.error.stack'] = entry.error?.stack
+          if (entry.error?.stack) attributes['log.error.stack'] = entry.error.stack
           activeSpan.recordException(entry.error)
         }
 
@@ -54,12 +55,11 @@ export const otelTransport = (options: OtelTransportOptions = {}): Transport => 
           })
         }
       } else {
-        const span = tracer.startSpan(entry.message, {
-          attributes: {
-            'log.level': entry.level,
-            'log.namespace': entry.namespace ?? '',
-          }
-        })
+        const spanAttrs: SpanAttributes = {
+          'log.level': entry.level,
+          'log.namespace': entry.namespace ?? '',
+        }
+        const span = tracer.startSpan(entry.message, { attributes: spanAttrs })
 
         if (entry.error) {
           span.recordException(entry.error)
