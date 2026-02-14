@@ -1,6 +1,22 @@
 import type { Transport, LogEntry, WebhookTransportOptions } from 'logfx'
 import { webhookTransport } from 'logfx'
 
+const serializeError = (error: Error): Record<string, unknown> => {
+  const errorWithCause = error as Error & { code?: string; cause?: unknown }
+  const serialized: Record<string, unknown> = {
+    name: error?.name ?? 'Error',
+    message: error?.message ?? String(error),
+    stack: error?.stack
+  }
+  if (errorWithCause.code) serialized.code = errorWithCause.code
+  if (errorWithCause.cause) {
+    serialized.cause = errorWithCause.cause instanceof Error
+      ? serializeError(errorWithCause.cause)
+      : errorWithCause.cause
+  }
+  return serialized
+}
+
 export interface ElasticsearchTransportOptions {
   node: string | string[]
   index?: string
@@ -18,19 +34,25 @@ export interface ElasticsearchTransportOptions {
   timeout?: number
 }
 
+const toBulkUrl = (base: string): string => {
+  const trimmed = base.replace(/\/+$/, '')
+  return trimmed.includes('/_bulk') ? trimmed : `${trimmed}/_bulk`
+}
+
 export const elasticsearchTransport = (options: ElasticsearchTransportOptions): Transport => {
   const index = options.index ?? 'logfx'
   const nodes = Array.isArray(options.node) ? options.node : [options.node]
-  
-  const authHeader: Record<string, string> = options.auth 
+  const bulkUrls = nodes.map(node => toBulkUrl(typeof node === 'string' ? node : String(node)))
+
+  const authHeader: Record<string, string> = options.auth
     ? 'apiKey' in options.auth
       ? { 'Authorization': `ApiKey ${options.auth.apiKey}` }
       : { 'Authorization': `Basic ${Buffer.from(`${options.auth.username}:${options.auth.password}`).toString('base64')}` }
     : {}
 
   const webhook = webhookTransport({
-    url: nodes[0],
-    urls: nodes.length > 1 ? nodes : undefined,
+    url: bulkUrls[0],
+    urls: bulkUrls.length > 1 ? bulkUrls : undefined,
     headers: {
       'Content-Type': 'application/x-ndjson',
       ...authHeader
@@ -53,38 +75,34 @@ export const elasticsearchTransport = (options: ElasticsearchTransportOptions): 
       maxSize: 1000,
       overflow: 'drop-oldest'
     },
-    failover: nodes.length > 1 ? {
+    failover: bulkUrls.length > 1 ? {
       strategy: 'round-robin',
       healthCheck: true
-    } : undefined
+    } : undefined,
+    formatBody: (entries) => {
+      let body = ''
+      for (const entry of entries) {
+        const esDoc = {
+          '@timestamp': entry.timestamp.toISOString(),
+          level: entry.level,
+          message: entry.message,
+          namespace: entry.namespace,
+          requestId: entry.requestId,
+          trace: entry.trace,
+          ...entry.data,
+          error: entry.error ? serializeError(entry.error) : undefined
+        }
+        const bulkAction = { index: { _index: index } }
+        body += `${JSON.stringify(bulkAction)}\n${JSON.stringify(esDoc)}\n`
+      }
+      return body
+    }
   })
 
   return {
     name: 'elasticsearch',
     log: (entry: LogEntry) => {
-      const esDoc = {
-        '@timestamp': entry.timestamp.toISOString(),
-        level: entry.level,
-        message: entry.message,
-        namespace: entry.namespace,
-        requestId: entry.requestId,
-        trace: entry.trace,
-        ...entry.data,
-        error: entry.error ? {
-          message: entry.error?.message ?? String(entry.error),
-          stack: entry.error?.stack,
-          name: entry.error?.name ?? 'Error'
-        } : undefined
-      }
-
-      const bulkAction = { index: { _index: index } }
-      
-      webhook.log({
-        ...entry,
-        data: {
-          bulk: `${JSON.stringify(bulkAction)}\n${JSON.stringify(esDoc)}\n`
-        }
-      })
+      webhook.log(entry)
     },
     flush: webhook.flush,
     close: webhook.close
