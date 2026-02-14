@@ -2,15 +2,18 @@
   "name": "logfx-monorepo",
   "private": true,
   "description": "logfx monorepo - Production-ready logging for JavaScript",
+  "workspaces": ["packages/*"],
   "scripts": {
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "test:run": "pnpm -r test:run",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
-    "clean": "pnpm -r exec rm -rf dist node_modules"
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:run": "npm run test:run --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "clean": "rm -rf packages/*/dist packages/*/node_modules node_modules"
   },
   "devDependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@sentry/node": "^10.39.0",
     "@types/node": "^20.19.27",
     "tsup": "^8.0.1",
     "typescript": "^5.3.2",
@@ -18,6 +21,5 @@
   },
   "engines": {
     "node": ">=18"
-  },
-  "packageManager": "pnpm@9.0.0"
+  }
 }
