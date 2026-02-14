@@ -87,6 +87,7 @@ export interface WebhookTransportOptions {
     healthCheck?: boolean
     healthInterval?: number
   }
+  formatBody?: (entries: LogEntry[]) => string
 }
 
 export type PIIPattern = 'email' | 'ssn' | 'creditCard' | 'phone' | 'ip' | 'jwt'
