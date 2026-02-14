@@ -143,6 +143,42 @@ transports.webhook({
 **Health Checks:**
 When enabled, periodically sends HEAD requests to check endpoint availability.
 
+### Integration Pattern: formatBody
+
+When building log integrations (Datadog, Elasticsearch, etc.) on top of the webhook transport, use `formatBody` to transform entries at flush time rather than per log call.
+
+**Why formatBody:**
+- Transforms once per batch instead of once per `log()` call
+- Better throughput under high log volume
+- Buffering stays simple (raw `LogEntry[]` until flush)
+
+**Elasticsearch pattern** (NDJSON bulk):
+```typescript
+webhookTransport({
+  url: 'https://elastic.example.com/_bulk',
+  headers: { 'Content-Type': 'application/x-ndjson' },
+  formatBody: (entries) => {
+    let body = ''
+    for (const entry of entries) {
+      body += JSON.stringify({ index: { _index: 'logs' } }) + '\n'
+      body += JSON.stringify(toEsDoc(entry)) + '\n'
+    }
+    return body
+  }
+})
+```
+
+**Datadog pattern** (JSON array):
+```typescript
+webhookTransport({
+  url: 'https://http-intake.logs.datadoghq.com/api/v2/logs',
+  formatBody: (entries) =>
+    JSON.stringify(entries.map(entry => toDatadogLog(entry)))
+})
+```
+
+**Avoid** wrapping each `log()` call in a transform. That runs N times for N log calls. With `formatBody`, the transform runs once per batch at flush.
+
 ## File Transport
 
 Write logs to files with rotation and compression.
