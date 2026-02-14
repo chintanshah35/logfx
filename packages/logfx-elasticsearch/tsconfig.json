@@ -5,8 +5,5 @@
     "rootDir": "./src"
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"],
-  "references": [
-    { "path": "../logfx" }
-  ]
+  "exclude": ["node_modules", "dist"]
 }
