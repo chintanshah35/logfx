@@ -22,6 +22,7 @@
 - **Tiny** — zero dependencies, ~3KB gzipped
 
 **Reliability & Performance:**
+- **High Performance** — handles 250k+ logs/sec (comparable to Pino)
 - **Retry logic** — exponential backoff with jitter
 - **Circuit breaker** — prevent cascading failures
 - **Dead letter queue** — persist failed logs
@@ -334,6 +335,65 @@ transports.beacon({
 - Guaranteed delivery even when page closes
 - Non-blocking (doesn't delay page unload)
 - Automatic fallback to fetch if sendBeacon unavailable
+
+## Ecosystem Integrations
+
+`logfx` provides officially supported packages for popular observability platforms.
+
+### Sentry (`logfx-sentry`)
+Automatically capture errors and attach standard logs as breadcrumbs/context in Sentry.
+
+```bash
+npm install logfx-sentry @sentry/node
+```
+
+```typescript
+import { createLogger } from 'logfx'
+import { sentryTransport } from 'logfx-sentry'
+import * as Sentry from '@sentry/node'
+
+Sentry.init({ dsn: "YOUR_DSN" })
+
+const log = createLogger({
+  transports: [
+    sentryTransport({ 
+      minLevel: 'warn',        // Only send warnings and errors
+      captureContext: true     // Attach log metadata to Sentry
+    })
+  ]
+})
+```
+
+### Elasticsearch (`logfx-elasticsearch`)
+Ship logs directly to your ELK stack using the highly-optimized Bulk API. Inherits `logfx`'s core circuit breaker, retry, and batching logic.
+
+```bash
+npm install logfx-elasticsearch
+```
+
+```typescript
+import { createLogger } from 'logfx'
+import { elasticsearchTransport } from 'logfx-elasticsearch'
+
+const log = createLogger({
+  transports: [
+    elasticsearchTransport({
+      node: 'https://es-cluster.example.com:9200',
+      index: 'app-logs',
+      auth: { apiKey: 'your-api-key' },
+      batchSize: 100,          // Send logs in chunks of 100
+      flushInterval: 5000,     // Or every 5 seconds
+      circuitBreaker: { enabled: true } // Don't hang if ES goes down
+    })
+  ]
+})
+```
+
+### Datadog (`logfx-datadog`)
+Send logs to Datadog's HTTP intake.
+
+### OpenTelemetry (`logfx-otel`)
+Automatically inject Trace and Span IDs into your logs.
 
 ## Context
 
