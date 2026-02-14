@@ -21,14 +21,13 @@ npm-debug.log*
 # Test coverage
 coverage/
 
+# Benchmarks
+packages/logfx/benchmark/
+packages/logfx/benchmarks/
+
 # Environment
 .env
 .env.local
 .env.*.local
 
-# Lock files (optional - remove if you want to commit them)
-# package-lock.json
-# yarn.lock
-# pnpm-lock.yaml
 
-COMPLETE_HISTORY_AND_PLANS.md
