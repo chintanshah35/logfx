@@ -16,6 +16,8 @@
   "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsup",
+    "test": "vitest",
+    "test:run": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "keywords": ["logfx", "azure", "log-analytics", "logging"],
@@ -26,6 +28,7 @@
   "devDependencies": {
     "logfx": "file:../logfx",
     "tsup": "^8.0.1",
-    "typescript": "^5.3.2"
+    "typescript": "^5.3.2",
+    "vitest": "^3.2.4"
   }
 }
