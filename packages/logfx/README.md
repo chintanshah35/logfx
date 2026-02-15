@@ -53,6 +53,7 @@
 - **Sentry** — error tracking via logfx-sentry
 - **Datadog** — APM via logfx-datadog
 - **Elasticsearch** — search and analytics via logfx-elasticsearch
+- **Cloud** — AWS CloudWatch, GCP, Azure via logfx-cloudwatch, logfx-google-cloud, logfx-azure
 - **TypeScript** — full type support
 
 ## Installation
@@ -391,6 +392,21 @@ const log = createLogger({
 
 ### Datadog (`logfx-datadog`)
 Send logs to Datadog's HTTP intake.
+
+### Cloud (logfx-cloudwatch, logfx-google-cloud, logfx-azure)
+Ship logs to AWS CloudWatch, Google Cloud Logging, or Azure Monitor Log Analytics.
+
+```bash
+npm install logfx-cloudwatch      # AWS
+npm install logfx-google-cloud    # GCP
+npm install logfx-azure            # Azure
+```
+
+```typescript
+import { cloudwatchTransport } from 'logfx-cloudwatch'
+import { googleCloudTransport } from 'logfx-google-cloud'
+import { azureTransport } from 'logfx-azure'
+```
 
 ### OpenTelemetry (`logfx-otel`)
 Automatically inject Trace and Span IDs into your logs.
