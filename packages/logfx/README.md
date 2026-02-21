@@ -54,6 +54,7 @@
 - **Datadog** — APM via logfx-datadog
 - **Elasticsearch** — search and analytics via logfx-elasticsearch
 - **Cloud** — AWS CloudWatch, GCP, Azure via logfx-cloudwatch, logfx-google-cloud, logfx-azure
+- **Slack, Loki, Papertrail, Splunk** — logfx-slack, logfx-loki, logfx-papertrail, logfx-splunk
 - **TypeScript** — full type support
 
 ## Installation
@@ -406,6 +407,16 @@ npm install logfx-azure            # Azure
 import { cloudwatchTransport } from 'logfx-cloudwatch'
 import { googleCloudTransport } from 'logfx-google-cloud'
 import { azureTransport } from 'logfx-azure'
+```
+
+### Slack, Loki, Papertrail, Splunk
+Ship logs to Slack webhooks, Grafana Loki, Papertrail, or Splunk HEC.
+
+```bash
+npm install logfx-slack
+npm install logfx-loki
+npm install logfx-papertrail
+npm install logfx-splunk
 ```
 
 ### OpenTelemetry (`logfx-otel`)
