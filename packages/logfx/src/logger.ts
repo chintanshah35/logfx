@@ -1,5 +1,5 @@
 import type { LogLevel, LoggerOptions, Logger, Transport, LogEntry, RedactOptions, SamplingOptions, BufferOptions, TraceContext } from './types'
-import { isBrowser, isProduction, levelPriority } from './styles'
+import { isBrowser, isProduction, levelPriority, registerCustomLevels } from './styles'
 import { formatBrowser, formatNode, getConsoleMethod } from './formatters'
 import { redactData } from './redact'
 import { LogBuffer } from './buffer'
@@ -86,6 +86,10 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     buffer: options.buffer as BufferOptions | undefined,
     requestId: options.requestId as string | undefined,
     trace: options.trace,
+  }
+
+  if (options.customLevels) {
+    registerCustomLevels(options.customLevels)
   }
 
   const debugFilter = getDebugFilter()
