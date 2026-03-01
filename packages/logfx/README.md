@@ -55,6 +55,7 @@
 - **Elasticsearch** — search and analytics via logfx-elasticsearch
 - **Cloud** — AWS CloudWatch, GCP, Azure via logfx-cloudwatch, logfx-google-cloud, logfx-azure
 - **Slack, Loki, Papertrail, Splunk** — logfx-slack, logfx-loki, logfx-papertrail, logfx-splunk
+- **Honeycomb, Logtail** — logfx-honeycomb, logfx-logtail
 - **TypeScript** — full type support
 
 ## Installation
@@ -417,6 +418,14 @@ npm install logfx-slack
 npm install logfx-loki
 npm install logfx-papertrail
 npm install logfx-splunk
+```
+
+### Honeycomb, Logtail
+Ship logs to Honeycomb Events API or Logtail (Better Stack).
+
+```bash
+npm install logfx-honeycomb
+npm install logfx-logtail
 ```
 
 ### OpenTelemetry (`logfx-otel`)
