@@ -1,6 +1,7 @@
 import type { LogLevel, LoggerOptions, LogEntry } from './types'
 import { styles, ansiColors } from './styles'
 import { safeStringify } from './json'
+import { serializeError } from './errors'
 
 const shouldDisableColors = (): boolean => {
   // Check NO_COLOR environment variable (standard)
@@ -168,35 +169,6 @@ export const getConsoleMethod = (level: LogLevel): 'log' | 'warn' | 'error' | 'd
       return 'log'
   }
 }
-
-const serializeError = (error: Error): Record<string, unknown> => {
-  const serialized: Record<string, unknown> = {
-    name: error?.name ?? 'Error',
-    message: error?.message ?? String(error),
-    stack: error?.stack
-  }
-  
-  const errorObj = error as any
-  
-  if (errorObj.code) {
-    serialized.code = errorObj.code
-  }
-  
-  if (errorObj.cause) {
-    serialized.cause = errorObj.cause instanceof Error 
-      ? serializeError(errorObj.cause)
-      : errorObj.cause
-  }
-  
-  for (const key of Object.keys(errorObj)) {
-    if (!['name', 'message', 'stack', 'code', 'cause'].includes(key)) {
-      serialized[key] = errorObj[key]
-    }
-  }
-  
-  return serialized
-}
-
 
 export const formatJson = (entry: LogEntry): string => {
   const output: Record<string, unknown> = {
