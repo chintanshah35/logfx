@@ -18,6 +18,8 @@ Production-ready logging for JavaScript and TypeScript.
 | [logfx-loki](./packages/logfx-loki) | 1.0.0 | Grafana Loki integration |
 | [logfx-papertrail](./packages/logfx-papertrail) | 1.0.0 | Papertrail integration |
 | [logfx-splunk](./packages/logfx-splunk) | 1.0.0 | Splunk HEC integration |
+| [logfx-honeycomb](./packages/logfx-honeycomb) | 1.0.0 | Honeycomb Events API integration |
+| [logfx-logtail](./packages/logfx-logtail) | 1.0.0 | Logtail (Better Stack) integration |
 
 ## Development
 
