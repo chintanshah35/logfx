@@ -75,7 +75,7 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     namespace: options.namespace as string | undefined,
     level: options.level ?? 'debug' as LogLevel,
     timestamp: options.timestamp ?? false,
-    enabled: options.enabled ?? !isProduction(),
+    enabled: options.enabled ?? true,
     badge: options.badge,
     format: options.format ?? getDefaultFormat(),
     transports: options.transports as Transport[] | undefined,
