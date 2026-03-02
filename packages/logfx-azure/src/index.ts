@@ -8,6 +8,7 @@ export interface AzureTransportOptions {
   logType?: string
   batchSize?: number
   flushInterval?: number
+  maxRetries?: number
 }
 
 const buildSignature = (
@@ -52,9 +53,11 @@ export const azureTransport = (options: AzureTransportOptions): Transport => {
   const logType = options.logType ?? 'LogFx'
   const batchSize = options.batchSize ?? 100
   const flushInterval = options.flushInterval ?? 5000
+  const maxRetries = options.maxRetries ?? 3
 
   let buffer: LogEntry[] = []
   let flushTimer: ReturnType<typeof setTimeout> | null = null
+  let consecutiveFailures = 0
 
   const getRfc1123Date = () => new Date().toUTCString()
 
@@ -66,23 +69,31 @@ export const azureTransport = (options: AzureTransportOptions): Transport => {
     const contentLength = Buffer.byteLength(body, 'utf8')
     const signature = buildSignature(options.sharedKey, date, contentLength)
 
-    const response = await fetch(
-      `https://${workspaceId}.ods.opinsights.azure.com/api/logs?api-version=2016-04-01`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Log-Type': logType,
-          'x-ms-date': date,
-          'Authorization': `SharedKey ${workspaceId}:${signature}`
-        },
-        body
-      }
-    )
+    try {
+      const response = await fetch(
+        `https://${workspaceId}.ods.opinsights.azure.com/api/logs?api-version=2016-04-01`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Log-Type': logType,
+            'x-ms-date': date,
+            'Authorization': `SharedKey ${workspaceId}:${signature}`
+          },
+          body
+        }
+      )
 
-    if (!response.ok) {
-      buffer.unshift(...entries)
-      throw new Error(`Azure Logs API error: ${response.status} ${response.statusText}`)
+      if (!response.ok) {
+        throw new Error(`Azure Logs API error: ${response.status} ${response.statusText}`)
+      }
+      consecutiveFailures = 0
+    } catch (error) {
+      consecutiveFailures++
+      if (consecutiveFailures <= maxRetries) {
+        buffer.unshift(...entries)
+      }
+      throw error
     }
   }
 
@@ -90,7 +101,11 @@ export const azureTransport = (options: AzureTransportOptions): Transport => {
     if (flushTimer) return
     flushTimer = setTimeout(() => {
       flushTimer = null
-      flush().catch(() => {})
+      flush().catch((error) => {
+        if (typeof console !== 'undefined') {
+          console.error('[logfx:azure] Flush failed:', error?.message ?? String(error))
+        }
+      })
     }, flushInterval)
   }
 
@@ -99,7 +114,11 @@ export const azureTransport = (options: AzureTransportOptions): Transport => {
     log: (entry: LogEntry) => {
       buffer.push(entry)
       if (buffer.length >= batchSize) {
-        flush().catch(() => {})
+        flush().catch((error) => {
+          if (typeof console !== 'undefined') {
+            console.error('[logfx:azure] Flush failed:', error?.message ?? String(error))
+          }
+        })
       } else {
         scheduleFlush()
       }
