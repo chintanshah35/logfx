@@ -29,7 +29,7 @@ jobs:
         run: npm ci
 
       - name: Run full test suite
-        run: npm run test:run -w logfx
+        run: npm run test:run --workspaces --if-present
 
   e2e-tests:
     name: E2E Tests
