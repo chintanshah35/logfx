@@ -13,17 +13,26 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup",
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["logfx", "cloudwatch", "aws", "logging"],
+  "keywords": [
+    "logfx",
+    "cloudwatch",
+    "aws",
+    "logging"
+  ],
   "license": "MIT",
   "peerDependencies": {
-    "logfx": "file:../logfx"
+    "logfx": "^1.0.0"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3.700.0"
