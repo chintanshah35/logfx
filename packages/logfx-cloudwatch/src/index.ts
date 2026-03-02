@@ -12,6 +12,7 @@ export interface CloudWatchTransportOptions {
   }
   batchSize?: number
   flushInterval?: number
+  maxRetries?: number
 }
 
 const toCloudWatchEvent = (entry: LogEntry) => {
@@ -38,6 +39,7 @@ export const cloudwatchTransport = (options: CloudWatchTransportOptions): Transp
   const logStreamName = options.logStreamName
   const batchSize = options.batchSize ?? 100
   const flushInterval = options.flushInterval ?? 5000
+  const maxRetries = options.maxRetries ?? 3
 
   const client = new CloudWatchLogsClient({
     region: options.region ?? process.env?.AWS_REGION ?? 'us-east-1',
@@ -46,6 +48,8 @@ export const cloudwatchTransport = (options: CloudWatchTransportOptions): Transp
 
   let buffer: LogEntry[] = []
   let flushTimer: ReturnType<typeof setTimeout> | null = null
+  let sequenceToken: string | undefined
+  let consecutiveFailures = 0
 
   const flush = async () => {
     if (buffer.length === 0) return
@@ -53,15 +57,21 @@ export const cloudwatchTransport = (options: CloudWatchTransportOptions): Transp
     const events = entries.map(toCloudWatchEvent).sort((a, b) => a.timestamp - b.timestamp)
 
     try {
-      await client.send(
+      const result = await client.send(
         new PutLogEventsCommand({
           logGroupName,
           logStreamName,
-          logEvents: events
+          logEvents: events,
+          sequenceToken
         })
       )
+      sequenceToken = result.nextSequenceToken
+      consecutiveFailures = 0
     } catch (error) {
-      buffer.unshift(...entries)
+      consecutiveFailures++
+      if (consecutiveFailures <= maxRetries) {
+        buffer.unshift(...entries)
+      }
       throw error
     }
   }
@@ -70,7 +80,11 @@ export const cloudwatchTransport = (options: CloudWatchTransportOptions): Transp
     if (flushTimer) return
     flushTimer = setTimeout(() => {
       flushTimer = null
-      flush().catch(() => {})
+      flush().catch((error) => {
+        if (typeof console !== 'undefined') {
+          console.error('[logfx:cloudwatch] Flush failed:', error?.message ?? String(error))
+        }
+      })
     }, flushInterval)
   }
 
@@ -79,7 +93,11 @@ export const cloudwatchTransport = (options: CloudWatchTransportOptions): Transp
     log: (entry: LogEntry) => {
       buffer.push(entry)
       if (buffer.length >= batchSize) {
-        flush().catch(() => {})
+        flush().catch((error) => {
+          if (typeof console !== 'undefined') {
+            console.error('[logfx:cloudwatch] Flush failed:', error?.message ?? String(error))
+          }
+        })
       } else {
         scheduleFlush()
       }
