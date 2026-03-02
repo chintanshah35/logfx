@@ -343,6 +343,22 @@ transports.beacon({
 
 `logfx` provides officially supported packages for popular observability platforms.
 
+| Package | Description |
+|---------|-------------|
+| [logfx-otel](https://github.com/chintanshah35/logfx/blob/main/packages/logfx-otel/README.md) | OpenTelemetry span events |
+| [logfx-sentry](https://github.com/chintanshah35/logfx/blob/main/packages/logfx-sentry/README.md) | Sentry error tracking |
+| [logfx-datadog](https://github.com/chintanshah35/logfx/blob/main/packages/logfx-datadog/README.md) | Datadog APM |
+| [logfx-elasticsearch](https://github.com/chintanshah35/logfx/blob/main/packages/logfx-elasticsearch/README.md) | Elasticsearch bulk API |
+| [logfx-cloudwatch](https://github.com/chintanshah35/logfx/blob/main/packages/logfx-cloudwatch/README.md) | AWS CloudWatch Logs |
+| [logfx-google-cloud](https://github.com/chintanshah35/logfx/blob/main/packages/logfx-google-cloud/README.md) | Google Cloud Logging |
+| [logfx-azure](https://github.com/chintanshah35/logfx/blob/main/packages/logfx-azure/README.md) | Azure Monitor Log Analytics |
+| [logfx-slack](https://github.com/chintanshah35/logfx/blob/main/packages/logfx-slack/README.md) | Slack webhooks |
+| [logfx-loki](https://github.com/chintanshah35/logfx/blob/main/packages/logfx-loki/README.md) | Grafana Loki |
+| [logfx-papertrail](https://github.com/chintanshah35/logfx/blob/main/packages/logfx-papertrail/README.md) | Papertrail |
+| [logfx-splunk](https://github.com/chintanshah35/logfx/blob/main/packages/logfx-splunk/README.md) | Splunk HEC |
+| [logfx-honeycomb](https://github.com/chintanshah35/logfx/blob/main/packages/logfx-honeycomb/README.md) | Honeycomb Events API |
+| [logfx-logtail](https://github.com/chintanshah35/logfx/blob/main/packages/logfx-logtail/README.md) | Logtail (Better Stack) |
+
 ### Sentry (`logfx-sentry`)
 Automatically capture errors and attach standard logs as breadcrumbs/context in Sentry.
 
