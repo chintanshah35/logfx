@@ -38,8 +38,6 @@ npm run typecheck
 npm run lint
 ```
 
-Integration testing: see [scripts/README.md](./scripts/README.md).
-
 ---
 
 ## Features
