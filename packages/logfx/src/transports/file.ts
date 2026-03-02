@@ -209,7 +209,9 @@ export const fileTransport = (options: FileTransportOptions): Transport => {
       currentSize = 0
       
       if (rotation?.compress) {
-        compressFile(rotatedPath).catch(() => {})
+        compressFile(rotatedPath).catch((error) => {
+          safeConsole.error('[logfx:file] Compress failed:', getErrorMessage(error))
+        })
       }
       
       cleanupOldFiles()
@@ -226,7 +228,9 @@ export const fileTransport = (options: FileTransportOptions): Transport => {
     }
     
     if (shouldRotate()) {
-      rotateFile().catch(() => {})
+      rotateFile().catch((error) => {
+        safeConsole.error('[logfx:file] Rotate failed:', getErrorMessage(error))
+      })
       pendingWrites.push(line)
       return
     }
