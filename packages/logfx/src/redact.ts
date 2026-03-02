@@ -67,11 +67,9 @@ const redactByPattern = (value: unknown, patterns: RegExp[], censor: string | ((
   
   let result = value
   for (const pattern of patterns) {
-    if (typeof censor === 'function') {
-      result = result.replace(pattern, censor)
-    } else {
-      result = result.replace(pattern, censor)
-    }
+    result = typeof censor === 'function'
+      ? result.replace(pattern, censor as (substring: string, ...args: unknown[]) => string)
+      : result.replace(pattern, censor)
   }
   
   return result
