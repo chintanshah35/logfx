@@ -84,7 +84,7 @@ export const getTraceContextFromOtel = () => {
   }
 }
 
-export const injectOtelContext = (logger: any) => {
+export const injectOtelContext = <T extends Record<string, unknown>>(logger: T): T & { trace: typeof getTraceContextFromOtel } => {
   return {
     ...logger,
     trace: getTraceContextFromOtel
