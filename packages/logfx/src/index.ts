@@ -90,6 +90,7 @@ export const transports = {
 export { consoleTransport, fileTransport, webhookTransport, beaconTransport }
 
 export { redactData, maskEmail, maskCreditCard, maskPhone } from './redact'
+export { serializeError } from './errors'
 
 export { generateTraceId, generateSpanId, createTraceContext, parseW3CTraceParent, formatW3CTraceParent } from './trace'
 

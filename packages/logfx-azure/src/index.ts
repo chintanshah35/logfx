@@ -1,4 +1,5 @@
 import type { Transport, LogEntry } from 'logfx'
+import { serializeError } from 'logfx'
 import { createHmac } from 'crypto'
 
 export interface AzureTransportOptions {
@@ -7,22 +8,6 @@ export interface AzureTransportOptions {
   logType?: string
   batchSize?: number
   flushInterval?: number
-}
-
-const serializeError = (error: Error): Record<string, unknown> => {
-  const errorWithCause = error as Error & { code?: string; cause?: unknown }
-  const serialized: Record<string, unknown> = {
-    name: error?.name ?? 'Error',
-    message: error?.message ?? String(error),
-    stack: error?.stack
-  }
-  if (errorWithCause.code) serialized.code = errorWithCause.code
-  if (errorWithCause.cause) {
-    serialized.cause = errorWithCause.cause instanceof Error
-      ? serializeError(errorWithCause.cause)
-      : errorWithCause.cause
-  }
-  return serialized
 }
 
 const buildSignature = (
