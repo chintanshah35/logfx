@@ -1,21 +1,5 @@
 import type { Transport, LogEntry, WebhookTransportOptions } from 'logfx'
-import { webhookTransport } from 'logfx'
-
-const serializeError = (error: Error): Record<string, unknown> => {
-  const errorWithCause = error as Error & { code?: string; cause?: unknown }
-  const serialized: Record<string, unknown> = {
-    name: error?.name ?? 'Error',
-    message: error?.message ?? String(error),
-    stack: error?.stack
-  }
-  if (errorWithCause.code) serialized.code = errorWithCause.code
-  if (errorWithCause.cause) {
-    serialized.cause = errorWithCause.cause instanceof Error
-      ? serializeError(errorWithCause.cause)
-      : errorWithCause.cause
-  }
-  return serialized
-}
+import { webhookTransport, serializeError } from 'logfx'
 
 export interface ElasticsearchTransportOptions {
   node: string | string[]

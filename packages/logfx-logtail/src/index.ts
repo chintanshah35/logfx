@@ -1,5 +1,5 @@
 import type { Transport, LogEntry, WebhookTransportOptions } from 'logfx'
-import { webhookTransport } from 'logfx'
+import { webhookTransport, serializeError } from 'logfx'
 
 export interface LogtailTransportOptions {
   sourceToken: string
@@ -10,22 +10,6 @@ export interface LogtailTransportOptions {
   circuitBreaker?: WebhookTransportOptions['circuitBreaker']
   dlq?: WebhookTransportOptions['dlq']
   timeout?: number
-}
-
-const serializeError = (error: Error): Record<string, unknown> => {
-  const errorWithCause = error as Error & { code?: string; cause?: unknown }
-  const serialized: Record<string, unknown> = {
-    name: error?.name ?? 'Error',
-    message: error?.message ?? String(error),
-    stack: error?.stack
-  }
-  if (errorWithCause.code) serialized.code = errorWithCause.code
-  if (errorWithCause.cause) {
-    serialized.cause = errorWithCause.cause instanceof Error
-      ? serializeError(errorWithCause.cause)
-      : errorWithCause.cause
-  }
-  return serialized
 }
 
 const toLogtailEvent = (entry: LogEntry): Record<string, unknown> => {
