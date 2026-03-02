@@ -1,5 +1,5 @@
 import type { Transport, LogEntry, WebhookTransportOptions } from 'logfx'
-import { webhookTransport } from 'logfx'
+import { webhookTransport, serializeError } from 'logfx'
 
 export interface SlackTransportOptions {
   webhookUrl: string
@@ -21,6 +21,9 @@ const toSlackLine = (entry: LogEntry): string => {
   if (entry.trace) {
     payload.traceId = entry.trace.traceId
     payload.spanId = entry.trace.spanId
+  }
+  if (entry.error) {
+    payload.error = serializeError(entry.error)
   }
   return JSON.stringify(payload)
 }

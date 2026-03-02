@@ -1,5 +1,5 @@
 import type { Transport, LogEntry, WebhookTransportOptions } from 'logfx'
-import { webhookTransport } from 'logfx'
+import { webhookTransport, serializeError } from 'logfx'
 
 export interface DatadogTransportOptions {
   apiKey: string
@@ -28,7 +28,8 @@ const toDatadogLog = (entry: LogEntry, options: DatadogTransportOptions, hostnam
   namespace: entry.namespace,
   requestId: entry.requestId,
   trace_id: entry.trace?.traceId,
-  span_id: entry.trace?.spanId
+  span_id: entry.trace?.spanId,
+  error: entry.error ? serializeError(entry.error) : undefined
 })
 
 export const datadogTransport = (options: DatadogTransportOptions): Transport => {
