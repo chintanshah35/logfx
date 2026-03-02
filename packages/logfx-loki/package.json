@@ -13,17 +13,26 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup",
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["logfx", "loki", "grafana", "logging"],
+  "keywords": [
+    "logfx",
+    "loki",
+    "grafana",
+    "logging"
+  ],
   "license": "MIT",
   "peerDependencies": {
-    "logfx": "file:../logfx"
+    "logfx": "^1.0.0"
   },
   "devDependencies": {
     "logfx": "file:../logfx",

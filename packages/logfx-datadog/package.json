@@ -33,7 +33,7 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "logfx": "file:../logfx"
+    "logfx": "^1.0.0"
   },
   "devDependencies": {
     "logfx": "file:../logfx",
