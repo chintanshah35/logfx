@@ -90,7 +90,7 @@ jobs:
         run: npm ci
 
       - name: Type check
-        run: npm run typecheck -w logfx
+        run: npm run typecheck --workspaces --if-present
 
       - name: Build
         run: npm run build
