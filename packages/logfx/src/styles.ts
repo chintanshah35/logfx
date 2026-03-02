@@ -65,18 +65,32 @@ export const registerCustomLevels = (customLevels: CustomLevel[]): void => {
   }
 }
 
-// Keep backward-compatible exports as proxy objects
+const resolveStyle = (target: Record<string, LogStyle>, prop: string | symbol): LogStyle => {
+  if (typeof prop !== 'string') return defaultStyle
+  return target[prop] ?? { ...defaultStyle, label: prop.toUpperCase() }
+}
+
+const resolveAnsiColor = (target: Record<string, { fg: string; bg: string; reset: string }>, prop: string | symbol) => {
+  if (typeof prop !== 'string') return defaultAnsiColor
+  return target[prop] ?? defaultAnsiColor
+}
+
+const resolvePriority = (target: Record<string, number>, prop: string | symbol): number => {
+  if (typeof prop !== 'string') return 1
+  return target[prop] ?? 1
+}
+
 export const styles: Record<LogLevel, LogStyle> = new Proxy(builtinStyles as Record<LogLevel, LogStyle>, {
-  get: (target, prop: string) => target[prop] ?? { ...defaultStyle, label: prop.toUpperCase() }
+  get: (target, prop) => resolveStyle(target, prop)
 })
 
 export const ansiColors: Record<LogLevel, { fg: string; bg: string; reset: string }> = new Proxy(
   builtinAnsiColors as Record<LogLevel, { fg: string; bg: string; reset: string }>,
-  { get: (target, prop: string) => target[prop] ?? defaultAnsiColor }
+  { get: (target, prop) => resolveAnsiColor(target, prop) }
 )
 
 export const levelPriority: Record<LogLevel, number> = new Proxy(
   builtinPriority as Record<LogLevel, number>,
-  { get: (target, prop: string) => target[prop] ?? 1 }
+  { get: (target, prop) => resolvePriority(target, prop) }
 )
 

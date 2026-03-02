@@ -111,7 +111,15 @@ export const createLogger = (options: LoggerOptions = {}): Logger => {
     if (!shouldSample(level, config.sampling)) return
 
     // Lazy evaluation: resolve functions only after filters pass
-    const resolvedArgs = args.map(arg => typeof arg === 'function' ? arg() : arg)
+    const resolvedArgs = args.map((arg) => {
+      if (typeof arg !== 'function') return arg
+      try {
+        return arg()
+      } catch (error) {
+        safeConsole.error('[logfx] Lazy log arg threw:', getErrorMessage(error))
+        return String(error)
+      }
+    })
 
     if (config.transports && config.transports.length > 0) {
       const { message, data, error } = extractMessage(resolvedArgs)

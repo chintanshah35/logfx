@@ -63,6 +63,7 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
 
   let buffer: LogEntry[] = []
   let flushTimer: ReturnType<typeof setTimeout> | null = null
+  let healthCheckInterval: ReturnType<typeof setInterval> | null = null
   let isFlushing = false
 
   let circuitState: 'closed' | 'open' | 'half-open' = 'closed'
@@ -255,21 +256,28 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
       })
 
       clearTimeout(timeoutId)
-      return response.ok
+      return response.status < 500
     } catch {
       return false
     }
   }
 
-  const startHealthChecks = () => {
+  const startHealthChecks = (): void => {
     if (!failoverConfig.healthCheck || endpoints.length <= 1) return
 
-    setInterval(async () => {
+    healthCheckInterval = setInterval(async () => {
       for (const endpoint of endpoints) {
         const healthy = await performHealthCheck(endpoint)
         markEndpointHealth(endpoint, healthy)
       }
     }, failoverConfig.healthInterval)
+  }
+
+  const stopHealthChecks = (): void => {
+    if (healthCheckInterval) {
+      clearInterval(healthCheckInterval)
+      healthCheckInterval = null
+    }
   }
 
   loadDeadLetterQueue()
@@ -403,6 +411,7 @@ export const webhookTransport = (options: WebhookTransportOptions): Transport =>
       await flushBuffer()
     },
     close: async () => {
+      stopHealthChecks()
       if (flushTimer) {
         clearTimeout(flushTimer)
         flushTimer = null

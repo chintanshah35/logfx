@@ -90,7 +90,11 @@ export class LogBuffer {
     
     for (const transport of this.transports) {
       if (transport.close) {
-        await transport.close()
+        try {
+          await transport.close()
+        } catch (error) {
+          safeConsole.error(`[logfx:buffer] Transport ${transport.name} close failed:`, getErrorMessage(error))
+        }
       }
     }
   }
