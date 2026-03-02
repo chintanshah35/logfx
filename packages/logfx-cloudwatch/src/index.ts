@@ -56,18 +56,33 @@ export const cloudwatchTransport = (options: CloudWatchTransportOptions): Transp
     const entries = buffer.splice(0, batchSize)
     const events = entries.map(toCloudWatchEvent).sort((a, b) => a.timestamp - b.timestamp)
 
-    try {
+    const sendBatch = async (token: string | undefined): Promise<void> => {
       const result = await client.send(
         new PutLogEventsCommand({
           logGroupName,
           logStreamName,
           logEvents: events,
-          sequenceToken
+          sequenceToken: token
         })
       )
       sequenceToken = result.nextSequenceToken
       consecutiveFailures = 0
+    }
+
+    try {
+      await sendBatch(sequenceToken)
     } catch (error) {
+      const awsError = error as { name?: string; expectedSequenceToken?: string }
+      if (awsError.name === 'InvalidSequenceTokenException' && awsError.expectedSequenceToken) {
+        sequenceToken = awsError.expectedSequenceToken
+        try {
+          await sendBatch(sequenceToken)
+          return
+        } catch (retryError) {
+          buffer.unshift(...entries)
+          throw retryError
+        }
+      }
       consecutiveFailures++
       if (consecutiveFailures <= maxRetries) {
         buffer.unshift(...entries)
