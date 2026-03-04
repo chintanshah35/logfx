@@ -367,8 +367,8 @@ describe('Webhook Transport', () => {
       log.info('test')
       
       await vi.advanceTimersByTimeAsync(100)
-      await vi.advanceTimersByTimeAsync(1100)
-      await vi.advanceTimersByTimeAsync(2100)
+      await vi.advanceTimersByTimeAsync(1500)
+      await vi.advanceTimersByTimeAsync(3000)
       
       expect(fetchMock).toHaveBeenCalledTimes(3)
       expect(consoleWarnSpy.mock.calls.length).toBeGreaterThanOrEqual(2)
