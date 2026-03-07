@@ -35,7 +35,7 @@
     "logfx": "^1.0.0"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.700.0"
+    "@aws-sdk/client-cloudwatch-logs": "^3.1004.0"
   },
   "devDependencies": {
     "logfx": "file:../logfx",
