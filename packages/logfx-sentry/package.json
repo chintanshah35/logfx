@@ -36,7 +36,7 @@
     "@sentry/node": "^7.0.0 || ^8.0.0"
   },
   "devDependencies": {
-    "@sentry/node": "^10.39.0",
+    "@sentry/node": "^10.42.0",
     "logfx": "file:../logfx",
     "tsup": "^8.0.1",
     "typescript": "^5.3.2",
