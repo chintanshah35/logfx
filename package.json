@@ -2,9 +2,13 @@
   "name": "logfx-monorepo",
   "private": true,
   "description": "logfx monorepo - Production-ready logging for JavaScript",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "overrides": {
-    "rollup": "4.59.0"
+    "rollup": "4.68.3",
+    "brace-expansion": "5.0.12",
+    "picomatch": "4.0.4"
   },
   "scripts": {
     "build": "npm run build --workspaces --if-present",
@@ -16,11 +20,11 @@
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@sentry/node": "^10.39.0",
+    "@sentry/node": "^11.14.0",
     "@types/node": "^20.19.27",
-    "tsup": "^8.0.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.3.2",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.12"
   },
   "engines": {
     "node": ">=18"

@@ -69,13 +69,16 @@
     "@types/node": "^20.19.27",
     "benny": "^3.7.1",
     "pino": "^10.3.1",
-    "tsup": "^8.0.1",
+    "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.3.2",
-    "vitest": "^3.2.4",
+    "vitest": "^4.1.12",
     "winston": "^3.19.0"
   },
   "engines": {
     "node": ">=18"
+  },
+  "overrides": {
+    "rollup": "4.68.3"
   }
 }
