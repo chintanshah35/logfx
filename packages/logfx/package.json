@@ -76,7 +76,7 @@
     "winston": "^3.19.0"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "overrides": {
     "rollup": "4.68.3"
