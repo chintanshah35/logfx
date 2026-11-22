@@ -1,6 +1,6 @@
 {
   "name": "logfx-azure",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Azure Monitor Log Analytics integration for logfx",
   "type": "module",
   "main": "./dist/index.cjs",

@@ -1,6 +1,6 @@
 {
   "name": "logfx-logtail",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Logtail (Better Stack) integration for logfx",
   "type": "module",
   "main": "./dist/index.cjs",
