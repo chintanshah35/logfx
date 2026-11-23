@@ -1,5 +1,7 @@
 # Dependencies
 node_modules/
+# Workspaces use the root lockfile only
+packages/*/package-lock.json
 
 # Build output
 dist/
