@@ -5,8 +5,13 @@ import { cloudwatchTransport } from '../src/index'
 const sendMock = vi.fn().mockResolvedValue({})
 
 vi.mock('@aws-sdk/client-cloudwatch-logs', () => ({
-  CloudWatchLogsClient: vi.fn().mockImplementation(() => ({ send: sendMock })),
-  PutLogEventsCommand: vi.fn().mockImplementation((input: unknown) => input)
+  // Vitest 4 requires real function/class for `new` constructors
+  CloudWatchLogsClient: vi.fn().mockImplementation(function () {
+    return { send: sendMock }
+  }),
+  PutLogEventsCommand: vi.fn().mockImplementation(function (input: unknown) {
+    return input
+  })
 }))
 
 describe('CloudWatch Transport', () => {
