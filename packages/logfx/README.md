@@ -1,6 +1,17 @@
 # logfx
 
-> Beautiful, colorful console logging with emojis, levels & namespaces
+Pretty logs in development, structured JSON in production. Zero dependencies.
+
+```bash
+npm install logfx
+```
+
+```typescript
+import { createLogger } from 'logfx'
+
+const log = createLogger()
+log.info('ready')
+```
 
 [![npm version](https://img.shields.io/npm/v/logfx.svg)](https://www.npmjs.com/package/logfx)
 [![npm downloads](https://img.shields.io/npm/dm/logfx.svg)](https://www.npmjs.com/package/logfx)
@@ -665,6 +676,8 @@ Learn more about logfx:
 - **[logfx v0.5.0: From Dev Tool to Production Logger](https://dev.to/chintanshah35/logfx-v050-from-dev-tool-to-production-logger-55nl)** - Dev.to
 - **[Your console.log Deserves Better](https://dev.to/chintanshah35/your-consolelog-deserves-better-4ack)** - Dev.to
 - **[logfx: Beautiful Console Logging That Actually Makes Sense](https://chintanshah35.hashnode.dev/logfx-beautiful-console-logging-that-actually-makes-sense)** - Hashnode
+
+If this replaced a messy console.log setup, star the repo so others can find it.
 
 ## License
 
